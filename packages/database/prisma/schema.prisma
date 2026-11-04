@@ -8,42 +8,93 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum UserRole {
+  MEMBER
+  ADMIN
+}
+
+enum ScanStatus {
+  QUEUED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum FindingSeverity {
+  CRITICAL
+  SERIOUS
+  MODERATE
+  MINOR
+}
+
+enum FindingStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+}
+
+enum FixSuggestionStatus {
+  SUGGESTED
+  ACCEPTED
+  REJECTED
+}
+
+enum VerificationStatus {
+  COMPLETED
+  FAILED
+}
+
+enum TeamMemberRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum NotificationType {
+  SCAN_COMPLETED
+  CRITICAL_ISSUE_DETECTED
+  JIRA_ISSUE_CREATED
+  VERIFICATION_COMPLETED
+  PROJECT_ACTIVITY
+}
+
 model UserProfile {
-  id             String          @id @default(cuid())
-  authUserId     String          @unique
-  email          String          @unique
-  fullName       String?
-  avatarUrl      String?
-  role           String          @default("member")
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  projects       Project[]
-  teams          TeamMember[]
-  notifications  Notification[]
-  activityLogs   ActivityLog[]
+  id               String           @id @default(cuid())
+  authUserId       String           @unique @db.Uuid
+  email            String           @unique
+  fullName         String?
+  avatarUrl        String?
+  role             UserRole         @default(MEMBER)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  projects         Project[]
+  teamMemberships  TeamMember[]
+  notifications    Notification[]
+  activityLogs     ActivityLog[]
   jiraIntegrations JiraIntegration[]
 
   @@index([email])
 }
 
 model Team {
-  id          String        @id @default(cuid())
+  id          String       @id @default(cuid())
   name        String
   description String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   members     TeamMember[]
   projects    Project[]
 }
 
 model TeamMember {
-  id        String      @id @default(cuid())
+  id        String         @id @default(cuid())
   teamId    String
   userId    String
-  role      String      @default("member")
-  createdAt DateTime    @default(now())
-  team      Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user      UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      TeamMemberRole @default(VIEWER)
+  createdAt DateTime       @default(now())
+  team      Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      UserProfile    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([teamId, userId])
   @@index([teamId])
@@ -51,158 +102,160 @@ model TeamMember {
 }
 
 model Project {
-  id          String    @id @default(cuid())
+  id          String      @id @default(cuid())
   ownerId     String
   teamId      String?
   name        String
   url         String
   description String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
   owner       UserProfile @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  team        Team?      @relation(fields: [teamId], references: [id])
+  team        Team?       @relation(fields: [teamId], references: [id], onDelete: SetNull)
   scans       Scan[]
 
-  @@index([ownerId])
-  @@index([teamId])
   @@unique([ownerId, name])
+  @@index([ownerId, createdAt])
+  @@index([teamId])
 }
 
 model Scan {
-  id          String       @id @default(cuid())
-  projectId   String
-  status      String       @default("queued")
-  score       Int          @default(0)
-  startedAt   DateTime     @default(now())
-  completedAt DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  findings    Finding[]
-  verificationRuns VerificationRun[]
+  id                String             @id @default(cuid())
+  projectId         String
+  status            ScanStatus         @default(QUEUED)
+  score             Int                @default(0)
+  startedAt         DateTime           @default(now())
+  completedAt       DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  project           Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  findings          Finding[]
+  verificationRuns  VerificationRun[]
 
-  @@index([projectId])
-}
-
-model Finding {
-  id          String          @id @default(cuid())
-  scanId      String
-  title       String
-  description String?
-  severity    String          @default("moderate")
-  status      String          @default("open")
-  selector    String?
-  snippet     String?
-  pageUrl     String?
-  wcag        String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  scan        Scan            @relation(fields: [scanId], references: [id], onDelete: Cascade)
-  aiExplanation AIExplanation?
-  fixSuggestion FixSuggestion?
-  jiraIssue   JiraIssue?
-  verificationRuns VerificationRun[]
-
-  @@index([scanId])
-  @@index([severity])
+  @@index([projectId, createdAt])
   @@index([status])
 }
 
+model Finding {
+  id                String              @id @default(cuid())
+  scanId            String
+  title             String
+  description       String?
+  severity          FindingSeverity     @default(MODERATE)
+  status            FindingStatus       @default(OPEN)
+  selector          String?
+  snippet           String?
+  pageUrl           String?
+  wcag              String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  scan              Scan                @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  aiExplanation     AIExplanation?
+  fixSuggestion     FixSuggestion?
+  jiraIssue         JiraIssue?
+  verificationRuns  VerificationRun[]
+
+  @@index([scanId, createdAt])
+  @@index([severity, status])
+}
+
 model AIExplanation {
-  id          String   @id @default(cuid())
-  findingId   String   @unique
-  summary     String
-  detail      String
+  id            String   @id @default(cuid())
+  findingId     String   @unique
+  summary       String
+  detail        String
   affectedUsers String[]
-  wcag        String[]
-  fixSteps    String[]
-  createdAt   DateTime @default(now())
-  finding     Finding  @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  wcag          String[]
+  fixSteps      String[]
+  createdAt     DateTime @default(now())
+  finding       Finding  @relation(fields: [findingId], references: [id], onDelete: Cascade)
 }
 
 model FixSuggestion {
-  id          String   @id @default(cuid())
-  findingId   String   @unique
+  id          String              @id @default(cuid())
+  findingId   String              @unique
   before      String
   after       String
   explanation String
-  accepted    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  finding     Finding  @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  status      FixSuggestionStatus @default(SUGGESTED)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  finding     Finding             @relation(fields: [findingId], references: [id], onDelete: Cascade)
 }
 
 model VerificationRun {
-  id          String   @id @default(cuid())
-  scanId      String
-  findingId   String?
-  status      String   @default("completed")
-  resolvedCount Int     @default(0)
-  regressionCount Int   @default(0)
-  scoreDelta  Int      @default(0)
-  createdAt   DateTime @default(now())
-  scan        Scan     @relation(fields: [scanId], references: [id], onDelete: Cascade)
-  finding     Finding? @relation(fields: [findingId], references: [id], onDelete: SetNull)
+  id              String             @id @default(cuid())
+  scanId          String
+  findingId       String?
+  status          VerificationStatus @default(COMPLETED)
+  resolvedCount   Int                @default(0)
+  regressionCount Int                @default(0)
+  scoreDelta      Int                @default(0)
+  createdAt       DateTime           @default(now())
+  scan            Scan               @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  finding         Finding?           @relation(fields: [findingId], references: [id], onDelete: SetNull)
 
-  @@index([scanId])
+  @@index([scanId, createdAt])
   @@index([findingId])
 }
 
 model JiraIntegration {
-  id          String       @id @default(cuid())
-  userId      String
-  baseUrl     String
-  projectKey  String
-  accessToken String?
-  refreshToken String?
-  connectedAt DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  user        UserProfile  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  issues      JiraIssue[]
+  id                  String       @id @default(cuid())
+  userId              String
+  baseUrl             String
+  projectKey          String
+  accessTokenCiphertext String?
+  refreshTokenCiphertext String?
+  connectedAt         DateTime?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  user                UserProfile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issues              JiraIssue[]
 
   @@unique([userId, projectKey])
   @@index([userId])
 }
 
 model JiraIssue {
-  id             String          @id @default(cuid())
-  integrationId   String
-  findingId       String?         @unique
-  jiraKey         String          @unique
-  title           String
-  status          String          @default("Open")
-  url             String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  integration     JiraIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-  finding         Finding?        @relation(fields: [findingId], references: [id], onDelete: SetNull)
+  id            String          @id @default(cuid())
+  integrationId String
+  findingId     String?         @unique
+  jiraKey       String          @unique
+  title         String
+  status        String          @default("Open")
+  url           String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  integration   JiraIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  finding       Finding?        @relation(fields: [findingId], references: [id], onDelete: SetNull)
 
   @@index([integrationId])
   @@index([status])
 }
 
 model Notification {
-  id        String      @id @default(cuid())
+  id        String           @id @default(cuid())
   userId    String
-  type      String
+  type      NotificationType
   title     String
   body      String
-  read      Boolean     @default(false)
-  createdAt DateTime    @default(now())
-  user      UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  user      UserProfile      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, read])
+  @@index([userId, read, createdAt])
 }
 
 model ActivityLog {
-  id          String      @id @default(cuid())
-  userId      String?
-  action      String
-  entityType  String?
-  entityId    String?
-  details     String?
-  createdAt   DateTime    @default(now())
-  user        UserProfile? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id         String       @id @default(cuid())
+  userId     String?
+  action     String
+  entityType String?
+  entityId   String?
+  details    Json?
+  createdAt  DateTime     @default(now())
+  user       UserProfile? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
+  @@index([entityType, entityId])
 }

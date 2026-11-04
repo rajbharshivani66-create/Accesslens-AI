@@ -8,10 +8,14 @@
     "devtools/*"
   ],
   "scripts": {
-    "dev": "turbo run dev --parallel",
+    "dev": "pnpm db:generate && turbo run dev --parallel",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "test": "vitest run",
+    "test": "pnpm db:generate && vitest run",
+    "typecheck": "pnpm db:generate && turbo run typecheck",
+    "db:generate": "pnpm --filter @accesslens-ai/database prisma:generate",
+    "db:validate": "pnpm --filter @accesslens-ai/database prisma:validate",
+    "db:migrate": "pnpm --filter @accesslens-ai/database prisma:migrate",
     "remove": "node scripts/remove-visual-agent.js"
   },
   "devDependencies": {
