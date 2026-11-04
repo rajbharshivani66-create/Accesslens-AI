@@ -21,9 +21,9 @@ AccessLens AI uses semantic versions in `vMAJOR.MINOR.PATCH` form. Keep `main` p
 - **Dependencies:** Added `@supabase/ssr`, `@supabase/supabase-js`, and `dotenv`; used existing Prisma, Zod, Next.js, and Vitest dependencies.
 - **Tests and results:** `pnpm install --frozen-lockfile` succeeded; Prisma Client generation succeeded; `pnpm db:validate` succeeded with temporary local placeholder URLs; `pnpm typecheck` passed; `pnpm test` passed (6 tests); `pnpm lint` passed; `pnpm build` passed. `pnpm db:migrate` was attempted but stopped before connecting because `DIRECT_URL` is not configured. Live Supabase Auth, database connectivity, and applying the migration remain unverified without real credentials.
 - **Known issues:** Hosted Supabase connectivity and authentication have not been tested; project migration remains unapplied. Future scanner, Gemini, verification, Jira, teams, analytics, notifications, and audit modules are not implemented. Future direct Supabase access needs scoped RLS policies before use.
-- **Git implementation commit:** Pending release commit.
-- **Git tag:** `v1.1.0` will be created after the final verified release commit.
-- **Restore instructions:** Before release, `git switch main` returns to the v1.0.0 checkpoint. After the v1.1.0 merge, use `git revert -m 1 <v1.1.0-merge-commit>` to reverse the code merge while preserving history. Database schema changes require a Supabase backup/restore; do not run a destructive reset on a database with user data.
+- **Git implementation commit:** `0156d023daa022a75419ecba3b5fcb0408d88a41`.
+- **Git tag:** `v1.1.0`.
+- **Restore instructions:** `git switch --detach v1.0.0` checks out the original scaffold; `git switch --detach v1.1.0` checks out this release. Database schema changes require a Supabase backup/restore; do not run a destructive reset on a database with user data.
 
 ## v1.0.0 — Initial monorepo foundation
 
