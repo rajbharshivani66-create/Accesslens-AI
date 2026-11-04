@@ -1,0 +1,16 @@
+{
+  "name": "@accesslens-ai/visual-agent-overlay",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "dev": "echo 'Overlay is development-only and not started by default.'"
+  },
+  "dependencies": {
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "typescript": "^5.7.3"
+  }
+}
