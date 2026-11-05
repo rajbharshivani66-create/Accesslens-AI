@@ -5,6 +5,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import type { AuthIdentity } from '../modules/auth/auth.types.js';
 import type {
+  DashboardRange,
+  DashboardRepository,
+  DashboardSummary
+} from '../modules/dashboard/dashboard.repository.js';
+import type {
   ProfileInput,
   ProfileRecord,
   ProjectInput,
@@ -102,15 +107,51 @@ class InMemoryProjectRepository implements ProjectRepository {
   }
 }
 
+class InMemoryDashboardRepository implements DashboardRepository {
+  lastRequest: { ownerId: string; range: DashboardRange; startDate: Date } | null = null;
+
+  async getSummary(
+    ownerId: string,
+    range: DashboardRange,
+    startDate: Date
+  ): Promise<DashboardSummary> {
+    this.lastRequest = { ownerId, range, startDate };
+    return {
+      range,
+      metrics: {
+        projectCount: 2,
+        scans: {
+          total: 0,
+          byStatus: { QUEUED: 0, IN_PROGRESS: 0, COMPLETED: 0, FAILED: 0 }
+        },
+        findings: {
+          total: 0,
+          byStatus: { OPEN: 0, IN_REVIEW: 0, RESOLVED: 0 },
+          bySeverity: { CRITICAL: 0, SERIOUS: 0, MODERATE: 0, MINOR: 0 }
+        },
+        accessibilityScore: null,
+        scoredProjectCount: 0
+      },
+      trends: [],
+      recentScans: [],
+      projectPerformance: [],
+      recentActivity: []
+    };
+  }
+}
+
 describe('authenticated profile and project API', () => {
   let repository: InMemoryProjectRepository;
+  let dashboardRepository: InMemoryDashboardRepository;
   let server: Server;
   let baseUrl: string;
 
   beforeEach(async () => {
     repository = new InMemoryProjectRepository();
+    dashboardRepository = new InMemoryDashboardRepository();
     const app = createApp({
       repository,
+      dashboardRepository,
       verifyAccessToken: async (token) => {
         if (token !== 'valid-user-one' && token !== 'valid-user-two') return null;
         const suffix = token === 'valid-user-one' ? 'one' : 'two';
@@ -139,12 +180,44 @@ describe('authenticated profile and project API', () => {
 
   it('rejects missing and invalid access tokens', async () => {
     const missing = await fetch(`${baseUrl}/api/projects`);
+    const missingDashboard = await fetch(`${baseUrl}/api/dashboard/summary`);
     const invalid = await fetch(`${baseUrl}/api/projects`, {
       headers: { Authorization: 'Bearer invalid-token' }
     });
 
     expect(missing.status).toBe(401);
+    expect(missingDashboard.status).toBe(401);
     expect(invalid.status).toBe(401);
+  });
+
+  it('returns a dashboard summary scoped to the verified profile', async () => {
+    const response = await fetch(`${baseUrl}/api/dashboard/summary?range=7d`, {
+      headers: { Authorization: 'Bearer valid-user-one' }
+    });
+    const result = (await response.json()) as { data: DashboardSummary };
+
+    expect(response.status).toBe(200);
+    expect(result.data.range).toBe('7d');
+    expect(result.data.metrics.projectCount).toBe(2);
+    expect(result.data.metrics.accessibilityScore).toBeNull();
+    expect(dashboardRepository.lastRequest?.ownerId).toBe('profile-auth-one');
+    expect(dashboardRepository.lastRequest?.range).toBe('7d');
+    expect(dashboardRepository.lastRequest?.startDate.getUTCHours()).toBe(0);
+  });
+
+  it('defaults the dashboard range and rejects unsupported ranges', async () => {
+    const defaultResponse = await fetch(`${baseUrl}/api/dashboard/summary`, {
+      headers: { Authorization: 'Bearer valid-user-two' }
+    });
+    const invalidResponse = await fetch(`${baseUrl}/api/dashboard/summary?range=365d`, {
+      headers: { Authorization: 'Bearer valid-user-two' }
+    });
+    const result = (await defaultResponse.json()) as { data: DashboardSummary };
+
+    expect(defaultResponse.status).toBe(200);
+    expect(result.data.range).toBe('30d');
+    expect(dashboardRepository.lastRequest?.ownerId).toBe('profile-auth-two');
+    expect(invalidResponse.status).toBe(400);
   });
 
   it('creates profiles from verified identities and scopes project lists to that profile', async () => {

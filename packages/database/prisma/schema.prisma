@@ -133,6 +133,8 @@ model Scan {
   verificationRuns  VerificationRun[]
 
   @@index([projectId, createdAt])
+  @@index([projectId, startedAt])
+  @@index([projectId, completedAt])
   @@index([status])
 }
 

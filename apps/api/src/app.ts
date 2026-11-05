@@ -4,11 +4,13 @@ import cors from 'cors';
 import express, { type ErrorRequestHandler, type Request, type Response } from 'express';
 import { z } from 'zod';
 import type { AccessTokenVerifier, AuthContext } from './modules/auth/auth.types.js';
+import type { DashboardRepository } from './modules/dashboard/dashboard.repository.js';
 import type { ProjectRepository } from './modules/projects/project.repository.js';
 import { asyncHandler } from './utils/async-handler.js';
 
 export interface AppDependencies {
   repository: ProjectRepository;
+  dashboardRepository: DashboardRepository;
   verifyAccessToken: AccessTokenVerifier;
   frontendUrl?: string;
 }
@@ -47,6 +49,10 @@ const projectUpdateSchema = projectSchema
 const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20)
+});
+
+const dashboardQuerySchema = z.object({
+  range: z.enum(['7d', '30d', '90d']).default('30d')
 });
 
 function isHttpUrl(value: string): boolean {
@@ -193,6 +199,28 @@ export function createApp(dependencies: AppDependencies) {
     if (!user) return;
     response.json({ data: { id: user.id, email: user.email, profileId: user.profileId } });
   });
+
+  app.get('/api/dashboard/summary', asyncHandler(async (request, response) => {
+    const user = requireAuthContext(request, response);
+    if (!user) return;
+
+    const parsed = dashboardQuerySchema.safeParse(request.query);
+    if (!parsed.success) {
+      sendValidationError(response, parsed.error);
+      return;
+    }
+
+    const days = Number.parseInt(parsed.data.range, 10);
+    const startDate = new Date();
+    startDate.setUTCHours(0, 0, 0, 0);
+    startDate.setUTCDate(startDate.getUTCDate() - days + 1);
+    const summary = await dependencies.dashboardRepository.getSummary(
+      user.profileId,
+      parsed.data.range,
+      startDate
+    );
+    response.json({ data: summary });
+  }));
 
   app.get('/api/profile', asyncHandler(async (request, response) => {
     const user = requireAuthContext(request, response);

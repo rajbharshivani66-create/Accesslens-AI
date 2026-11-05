@@ -7,15 +7,22 @@ dotenv.config();
 const port = Number(process.env.PORT ?? 4000);
 
 async function start(): Promise<void> {
-  const [{ connectDatabase, disconnectDatabase, prisma }, { createApp, createSupabaseTokenVerifier }, { PrismaProjectRepository }] =
+  const [
+    { connectDatabase, disconnectDatabase, prisma },
+    { createApp, createSupabaseTokenVerifier },
+    { PrismaProjectRepository },
+    { PrismaDashboardRepository }
+  ] =
     await Promise.all([
       import('@accesslens-ai/database'),
       import('./app.js'),
-      import('./services/prisma-project.repository.js')
+      import('./services/prisma-project.repository.js'),
+      import('./services/prisma-dashboard.repository.js')
     ]);
 
   const app = createApp({
     repository: new PrismaProjectRepository(prisma),
+    dashboardRepository: new PrismaDashboardRepository(prisma),
     verifyAccessToken: createSupabaseTokenVerifier(),
     frontendUrl: process.env.FRONTEND_URL
   });

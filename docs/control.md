@@ -4,7 +4,26 @@ AccessLens AI uses semantic versions in `vMAJOR.MINOR.PATCH` form. Keep `main` p
 
 ## Current version
 
-**v1.1.0 — Supabase, Prisma, authentication, profile, and project foundation**
+**v1.2.0 — Database-backed dashboard and analytics foundation**
+
+## v1.2.0 release record
+
+- **Date:** 2026-11-05
+- **Objective:** Continue the completed v1.1.0 release with real, owner-scoped dashboard aggregates, trends, project performance, and persisted scan/finding views.
+- **Starting checkpoint:** `v1.1.0` tag at commit `33e4f64`; work started from a clean `main` and branch `feature/v1.2-dashboard-analytics`.
+- **Planned files:** dashboard API contract and Prisma repository, API dependency wiring and range validation, dashboard API tests, dashboard page/charts/styles, scan query index/schema migration, README and dashboard/API/architecture/database/mindmap/control/changelog updates.
+- **Files created:** `apps/api/src/modules/dashboard/dashboard.repository.ts`; `apps/api/src/services/prisma-dashboard.repository.ts`; `packages/database/prisma/migrations/20261105180000_dashboard_query_indexes/migration.sql`; `docs/security.md`; `docs/testing.md`.
+- **Files modified:** `apps/api/src/app.ts`; `apps/api/src/main.ts`; `apps/api/src/__tests__/app.test.ts`; `apps/web/src/app/(app)/dashboard/page.tsx`; `apps/web/src/app/globals.css`; `apps/web/src/components/app-shell/feature-placeholder.tsx`; `packages/database/prisma/schema.prisma`; `README.md`; `CHANGELOG.md`; `docs/control.md`; `docs/mindmap.md`; `docs/api-documentation.md`; `docs/architecture.md`; `docs/database-design.md`.
+- **Files deleted:** None.
+- **Database changes:** Add `(projectId, startedAt)` and `(projectId, completedAt)` indexes on `Scan` for scoped trend and latest-score queries. No model or enum changes.
+- **API changes:** Add authenticated `GET /api/dashboard/summary?range=7d|30d|90d`; aggregate projects, scans/statuses, findings/statuses/severities, daily trends, recent scans, project performance, and user activity using only the verified profile's projects.
+- **Features implemented:** Replaced the project-count-only dashboard with real database-backed KPI cards, trends, severity breakdown, project performance, recent scans/activity, and period selection. The score is the rounded average of each owned project's latest completed stored scan score; it is unavailable before completed scores exist and is not a compliance determination.
+- **Dependencies:** No new dependencies; reused existing Recharts.
+- **Tests and results:** `pnpm db:validate` passed using temporary placeholder URLs; `pnpm typecheck` passed; `pnpm test` passed (8 tests); `pnpm lint` passed; `pnpm build` passed; `git diff --check` passed. No database migration or live Supabase tests were run without credentials.
+- **Known issues:** No scanner creates scan records yet; the dashboard correctly shows empty metrics until records exist. No feature currently writes `ActivityLog` rows. Live PostgreSQL query execution and migration application require Supabase credentials and remain unverified.
+- **Git implementation commit:** Pending.
+- **Git tag:** `v1.2.0` will be created only after the release commit passes validation.
+- **Restore instructions:** `git switch --detach v1.1.0` restores the prior release. To reverse a merged v1.2.0 release, revert its merge commit; database index rollback should be applied through a reviewed migration rather than a destructive database reset.
 
 ## v1.1.0 release record
 

@@ -1,8 +1,8 @@
 # AccessLens AI
 
-AccessLens AI is a pnpm/Turborepo monorepo for an accessibility SaaS platform. Version **v1.1.0** establishes Supabase Auth, a Prisma-backed Supabase PostgreSQL connection, protected application routes, user profiles, and owner-scoped website projects.
+AccessLens AI is a pnpm/Turborepo monorepo for an accessibility SaaS platform. Version **v1.2.0** builds on the Supabase Auth, Prisma, profile, and project foundation with an authenticated dashboard backed by saved project, scan, finding, and activity records.
 
-The scanner, Gemini, Jira, notifications, and team features are intentionally not implemented yet. Their screens identify themselves as planned modules and do not display fabricated records.
+Website scanning, Gemini, Jira, notifications, team management, and full analytics/reporting are not implemented yet. Their screens identify themselves as planned modules and do not display fabricated records.
 
 ## Repository map
 
@@ -11,7 +11,7 @@ The scanner, Gemini, Jira, notifications, and team features are intentionally no
 - `packages/database` — Prisma schema, initial migration, and shared Prisma client
 - `packages/shared` — shared application types
 - `devtools/visual-agent-overlay` — separate development-only overlay package
-- `docs` — architecture, database, API, deployment, and version documentation
+- `docs` — architecture, database, API, security, testing, deployment, and version documentation
 
 ## Requirements
 
@@ -31,7 +31,13 @@ The scanner, Gemini, Jira, notifications, and team features are intentionally no
 4. In Supabase Auth URL configuration, allow `http://localhost:3000/auth/callback` during local development, plus the equivalent callback URL for each deployed web origin.
 5. Keep `SUPABASE_ANON_KEY` server-side in `.env`; only the `NEXT_PUBLIC_*` anon key is exposed to the browser. Do not configure or expose a service-role key for this app.
 
-The initial Prisma migration enables RLS on all application tables. It adds profile self-read/safe-insert policies and owner-scoped project policies; tables for later modules have no client policies yet. The Express API verifies Supabase tokens and enforces ownership in every implemented profile/project query. The API database connection is trusted and privileged, so authorization must remain in the API and direct database credentials must never be exposed to the browser.
+The Prisma migrations enable RLS on all application tables. The initial migration adds profile self-read/safe-insert policies and owner-scoped project policies; tables for later modules have no client policies yet. The v1.2 migration adds indexes for dashboard scan queries. The Express API verifies Supabase tokens and enforces ownership in every implemented profile/project/dashboard query. The API database connection is trusted and privileged, so authorization must remain in the API and direct database credentials must never be exposed to the browser.
+
+## Dashboard
+
+The authenticated dashboard reads owner-scoped aggregates from `GET /api/dashboard/summary`. It shows actual project, scan, finding, status, severity, recent scan, and project performance data. Its 7/30/90-day selector filters the daily scan and finding trends; summary totals cover saved records across the user's projects. Empty results display empty states rather than example statistics.
+
+The displayed accessibility score is the rounded average of each owned project's latest completed persisted scan score. It remains unavailable until completed scored scans exist. Automated scores are not proof of WCAG compliance. Activity entries likewise require a later feature to begin writing `ActivityLog` records.
 
 ## Database setup
 
@@ -44,7 +50,7 @@ pnpm db:validate
 pnpm db:migrate
 ```
 
-`pnpm db:migrate` uses `prisma migrate deploy` to apply checked-in migrations without creating a shadow database; it requires working `DATABASE_URL` and `DIRECT_URL` credentials. The migration SQL is in `packages/database/prisma/migrations/20261105000000_initial/`. The migration has not been applied to a live Supabase project in this workspace because real credentials were not configured. Use `pnpm --filter @accesslens-ai/database prisma:migrate:dev` only with a development database/shadow-database setup when authoring later migrations.
+`pnpm db:migrate` uses `prisma migrate deploy` to apply checked-in migrations without creating a shadow database; it requires working `DATABASE_URL` and `DIRECT_URL` credentials. The initial schema and v1.2 dashboard index migration are in `packages/database/prisma/migrations/`. They have not been applied to a live Supabase project in this workspace because real credentials were not configured. Use `pnpm --filter @accesslens-ai/database prisma:migrate:dev` only with a development database/shadow-database setup when authoring later migrations.
 
 ## Authentication setup
 
@@ -83,4 +89,4 @@ The automated API tests use injected test identities and an in-memory repository
 
 ## Version history
 
-See [docs/control.md](./docs/control.md) for the v1.0.0 checkpoint, v1.1.0 change record, verification results, and restore commands. See [docs/mindmap.md](./docs/mindmap.md) for current and planned module boundaries.
+See [docs/control.md](./docs/control.md) for the v1.0.0, v1.1.0, and v1.2.0 records, verification results, and restore commands. See [docs/mindmap.md](./docs/mindmap.md) for current and planned module boundaries, [docs/security.md](./docs/security.md) for current trust boundaries, and [docs/testing.md](./docs/testing.md) for executed versus pending verification.

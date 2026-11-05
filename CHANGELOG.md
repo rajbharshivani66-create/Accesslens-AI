@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.2.0 — Database-backed dashboard foundation
+
+- Added the authenticated `/api/dashboard/summary` endpoint with validated 7/30/90-day ranges and owner-scoped project, scan, finding, severity, recent scan, project performance, activity, and trend data.
+- Replaced the project-count-only dashboard with real metric cards, date-filtered scan/finding charts, severity distribution, project performance, recent scans, and recent activity.
+- Documented that persisted scan scores are automated metrics and not evidence of WCAG compliance; absent scan/activity records remain clearly empty.
+- Added Scan `(projectId, startedAt)` and `(projectId, completedAt)` indexes to support dashboard trends and latest-score aggregation.
+- Added API tests for dashboard authentication, profile scoping, default range, and invalid range handling.
+- Live PostgreSQL query execution and migration application remain unverified without Supabase credentials.
+
 ## v1.1.0 — Supabase, Prisma, authentication, and application foundation
 
 - Added Supabase Auth registration, login, logout, email confirmation callback, forgot-password, reset-password, and protected app routes.

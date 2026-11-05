@@ -24,9 +24,11 @@ Enums represent user/team roles, scan states, finding severity/status, fix sugge
 
 Foreign keys, unique constraints, indexes, created/updated timestamps, and delete behavior are declared in Prisma. Project deletion cascades through scans/findings and their dependent records; team deletion sets project team assignment to null.
 
+The v1.2 dashboard migration adds `Scan(projectId, startedAt)` to support project-scoped time-series queries and `Scan(projectId, completedAt)` for selecting each project's latest completed score. Finding daily trend queries use the existing `Finding(scanId, createdAt)` index and join through the scan's project.
+
 ## Initial migration
 
-`packages/database/prisma/migrations/20261105000000_initial/migration.sql` creates the tables and indexes and enables RLS on all app tables.
+`packages/database/prisma/migrations/20261105000000_initial/migration.sql` creates the tables and indexes and enables RLS on all app tables. `20261105180000_dashboard_query_indexes` adds the scan indexes used by dashboard trends and score aggregation.
 
 The migration adds `authenticated` policies for users to read and safely insert their own `UserProfile`, and access owner-linked `Project` records. Profile updates stay behind the API so client requests cannot change roles. Other models have RLS enabled but no client policies yet, denying direct client access until a feature adds scoped policies.
 

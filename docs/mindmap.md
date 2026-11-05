@@ -1,11 +1,11 @@
 # AccessLens AI Project Knowledge Map
 
-**Current development version:** v1.1.0
-**Status:** Foundation, Supabase Auth wiring, profile API, and project CRUD are implemented. A live Supabase integration still requires project credentials.
+**Current development version:** v1.2.0
+**Status:** v1.1 authentication/profile/project foundation plus owner-scoped database-backed dashboard aggregates are implemented. Live Supabase use still requires project credentials.
 
 ## 1. Project overview
 
-AccessLens AI is a modular accessibility SaaS monorepo. The current version provides Supabase Auth, a protected Next.js application shell, user profiles, and owner-scoped website projects. Website scanning, findings, AI, verification, Jira, analytics, teams, and notifications are planned modules, not implemented services.
+AccessLens AI is a modular accessibility SaaS monorepo. The current version provides Supabase Auth, a protected Next.js application shell, user profiles, owner-scoped website projects, and a database-backed dashboard over persisted scan/finding records. The scanner, finding workflows, AI, verification, Jira, teams, notifications, and full analytics remain planned modules.
 
 The Visual Agent is a separate, optional package in `devtools/visual-agent-overlay`. The web app has no dependency on it.
 
@@ -70,13 +70,13 @@ flowchart TD
 - **Related modules:** Profile, projects, all future app pages.
 
 ### Dashboard
-- **Purpose:** Show the authenticated user's current project count and recent projects.
+- **Purpose:** Show authenticated workspace project, scan, finding, severity, recent activity, and persisted scan-score metrics.
 - **Path:** `apps/web/src/app/(app)/dashboard/`
-- **Components:** Project summary and empty/loading/error states.
-- **APIs/models:** `GET /api/projects`; `Project`.
-- **Logic:** All visible project information is fetched from the API. Scan metrics are shown as unavailable, not fabricated.
-- **Dependencies:** API helper.
-- **Related modules:** Projects.
+- **Components:** Time-range selector, summary cards, scan/finding trend chart, severity chart, project performance, recent scans/activity, and empty/loading/error states.
+- **APIs/models:** `GET /api/dashboard/summary?range=7d|30d|90d`; `Project`, `Scan`, `Finding`, `ActivityLog`.
+- **Logic:** The API aggregates only rows associated with the verified profile's projects. Scan/finding daily trends use the selected UTC calendar range. Empty records render as empty states. Accessibility score is computed across all owned projects by averaging each project's latest completed persisted scan score; it is absent until such scores exist and does not indicate WCAG compliance.
+- **Dependencies:** API helper and existing Recharts dependency.
+- **Related modules:** Projects, future scanner and activity logging.
 
 ### Projects
 - **Purpose:** Create, list, view, update, and delete websites owned by the signed-in user.
@@ -129,6 +129,14 @@ sequenceDiagram
 Passwords are stored and verified by Supabase Auth only. No AccessLens model stores password data. The API uses the Supabase public anon key to verify tokens and does not require the service-role key.
 
 ## 6. Backend APIs and relationships
+
+### Dashboard summary
+- **Purpose:** Provide a single owner-scoped data source for dashboard cards and charts.
+- **Path:** `apps/api/src/modules/dashboard/`, `apps/api/src/services/prisma-dashboard.repository.ts`
+- **Components:** `DashboardRepository`, `PrismaDashboardRepository`, Zod range validation.
+- **API:** `GET /api/dashboard/summary?range=7d|30d|90d` (defaults to `30d`).
+- **Logic:** Project, scan, finding, severity/status, recent scan, project performance, and user activity queries are constrained by the authenticated profile. Daily scan/finding trends use parameterized PostgreSQL aggregation. `ActivityLog` is read-only here and stays empty until a feature writes events.
+- **Security:** Caller identity is taken from the verified Supabase token; no user ID query parameter is accepted.
 
 ### API app and middleware
 - **Purpose:** Build the Express application, auth boundary, validation, and standard response/error handling.
@@ -186,7 +194,7 @@ erDiagram
   USERPROFILE ||--o{ ACTIVITYLOG : records
 ```
 
-The Prisma schema is `packages/database/prisma/schema.prisma`. It defines 13 models: `UserProfile`, `Project`, `Scan`, `Finding`, `AIExplanation`, `FixSuggestion`, `VerificationRun`, `JiraIntegration`, `JiraIssue`, `Team`, `TeamMember`, `Notification`, and `ActivityLog`. Domain lifecycle fields use Prisma enums; `JiraIssue.status` remains a string because Jira workflows may define custom statuses. Unique constraints and indexes cover Supabase identity, user email, project ownership/name, team membership, Jira keys, and common access paths.
+The Prisma schema is `packages/database/prisma/schema.prisma`. It defines 13 models: `UserProfile`, `Project`, `Scan`, `Finding`, `AIExplanation`, `FixSuggestion`, `VerificationRun`, `JiraIntegration`, `JiraIssue`, `Team`, `TeamMember`, `Notification`, and `ActivityLog`. Domain lifecycle fields use Prisma enums; `JiraIssue.status` remains a string because Jira workflows may define custom statuses. Unique constraints and indexes cover Supabase identity, user email, project ownership/name, team membership, Jira keys, and common access paths. The v1.2 migration adds `Scan(projectId, startedAt)` for trends and `Scan(projectId, completedAt)` for latest completed scores.
 
 The initial migration enables RLS on all application tables. It defines authenticated self-read/safe-insert policies for `UserProfile` and owner access for `Project`; profile updates stay behind the validated API, and other tables currently have no client policies. The trusted backend DB role bypasses RLS, so API authorization and owner-scoped Prisma queries are mandatory. `DATABASE_URL` is used at runtime; `DIRECT_URL` is reserved for migrations.
 
@@ -270,30 +278,31 @@ No Supabase service-role key, Gemini key, or Jira credential is required by the 
 
 ## 15. Completed and pending feature status
 
-### Implemented in v1.1.0
+### Implemented in v1.1.0 and v1.2.0
 - Supabase browser Auth, SSR cookie refresh, protected routes, PKCE callback, password recovery, and logout.
 - Backend Supabase token verification, auth context, profile auto-creation and profile update.
 - Prisma enums/models, client lifecycle utility, initial PostgreSQL migration, and RLS policies.
 - Authenticated user project CRUD, pagination, URL validation, and owner-only repository access.
 - Responsive application shell, data-backed dashboard/projects/settings, and explicit loading/error/empty states.
+- Authenticated database-backed dashboard summary, date-range scan/finding trends, severity breakdown, project performance, recent scans/activity, and persisted-score explanation.
 - Accessible success toast notifications for completed profile/project changes.
-- API integration tests for invalid tokens, identity/profile creation, CRUD, and cross-user isolation.
+- API integration tests for invalid tokens, identity/profile creation, CRUD, cross-user isolation, and dashboard authentication/range handling.
 
 ### Not implemented
 - Live database/auth credentials and live migrations
 - Accessibility scanner and findings
 - Gemini explanations/fix suggestions
 - Verification/regression runs
-- Jira OAuth and issue sync
-- Analytics/report exports, teams/invitations, notifications, and audit events
+- Full analytics/report exports, Jira OAuth/issue sync, teams/invitations, notifications, and activity-log writing
 - Production operation of Visual Agent
 
 ## 16. Known limitations and decisions
 
 - Live authentication and PostgreSQL connectivity cannot be verified without a configured Supabase project.
-- Automated API tests inject the auth verifier and repository; they validate application authorization, not Supabase's hosted service.
-- The Prisma migration SQL is generated and schema-validated but not applied to a live database.
+- Automated API tests inject the auth verifier and repositories; they validate application authorization and response contracts, not Supabase's hosted service or PostgreSQL query execution.
+- The v1.1 and v1.2 Prisma migration SQL is generated and schema-validated but not applied to a live database.
 - RLS policies for future-owned tables must be added alongside their modules before direct Supabase access is enabled.
 - The API uses a trusted backend database role; do not expose its connection string. Ownership checks in API methods are part of the security boundary.
 - Supabase token verification uses `getUser(token)` rather than decoding an unverified JWT.
+- Dashboard `ActivityLog` data only appears after actions are wired to create audit records; currently no activity writer is implemented.
 - The visual agent is independent and can be removed without affecting app imports.
