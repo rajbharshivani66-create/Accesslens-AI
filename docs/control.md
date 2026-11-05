@@ -21,7 +21,7 @@ AccessLens AI uses semantic versions in `vMAJOR.MINOR.PATCH` form. Keep `main` p
 - **Dependencies:** No new dependencies; reused existing Recharts.
 - **Tests and results:** `pnpm db:validate` passed using temporary placeholder URLs; `pnpm typecheck` passed; `pnpm test` passed (8 tests); `pnpm lint` passed; `pnpm build` passed; `git diff --check` passed. No database migration or live Supabase tests were run without credentials.
 - **Known issues:** No scanner creates scan records yet; the dashboard correctly shows empty metrics until records exist. No feature currently writes `ActivityLog` rows. Live PostgreSQL query execution and migration application require Supabase credentials and remain unverified.
-- **Git implementation commit:** Pending.
+- **Git implementation commit:** `f3bb59dfe909b2db9d62633011a876ca4750a8c6`.
 - **Git tag:** `v1.2.0` will be created only after the release commit passes validation.
 - **Restore instructions:** `git switch --detach v1.1.0` restores the prior release. To reverse a merged v1.2.0 release, revert its merge commit; database index rollback should be applied through a reviewed migration rather than a destructive database reset.
 
