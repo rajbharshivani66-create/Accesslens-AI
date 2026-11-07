@@ -87,6 +87,7 @@ describe('API environment validation', () => {
       ...requiredEnvironment,
       NODE_ENV: 'production',
       RATE_LIMIT_REDIS_URL: 'rediss://rate-limiter.example.test:6380/0',
+      FRONTEND_URL: 'https://accesslens.example.test',
       TRUSTED_PROXY_CIDRS: '10.24.0.0/16, 2001:db8::/32'
     });
     expect(environment.TRUSTED_PROXY_CIDRS).toEqual(['10.24.0.0/16', '2001:db8::/32']);
@@ -103,6 +104,20 @@ describe('API environment validation', () => {
       ...requiredEnvironment,
       RATE_LIMIT_REDIS_URL: 'https://rate-limiter.example.test'
     })).toThrow(/redis:\/\/ or rediss:\/\/ URL/);
+  });
+
+  it('requires an explicit public HTTPS frontend origin in production', () => {
+    const production = {
+      ...requiredEnvironment,
+      NODE_ENV: 'production',
+      RATE_LIMIT_REDIS_URL: 'rediss://rate-limiter.example.test:6380/0'
+    };
+
+    expect(() => parseApiEnvironment(production)).toThrow(/FRONTEND_URL: must be a public HTTPS origin in production/);
+    expect(() => parseApiEnvironment({ ...production, FRONTEND_URL: 'http://accesslens.example.test' }))
+      .toThrow(/FRONTEND_URL: must be a public HTTPS origin in production/);
+    expect(parseApiEnvironment({ ...production, FRONTEND_URL: 'https://accesslens.example.test' }).FRONTEND_URL)
+      .toBe('https://accesslens.example.test');
   });
 
   it('caps scanner resource limits', () => {

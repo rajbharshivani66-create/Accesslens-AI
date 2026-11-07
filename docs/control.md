@@ -148,3 +148,7 @@ Found and prepared an additive RLS migration for `JiraOAuthState`, which contain
 ### Phase 17 UI and accessibility polish
 
 Findings details now manage keyboard focus and Escape dismissal; Dashboard and Analytics charts expose textual summaries; select controls have visible keyboard focus; and reduced-motion preferences are honored. No API/schema changes. Automated/browser/manual evidence and limitations are in docs/testing.md. No WCAG conformance claim is made.
+
+### Phase 18 deployment readiness
+
+Local audit only. API binds explicitly to `0.0.0.0`; production API configuration now rejects local/insecure frontend origins. Render Free Chromium capacity/build setup remains unverified and is a staging blocker. Jira OAuth RLS is reported unapplied; the dependency audit was not retried. No external change, migration, or deployment was made. See `docs/deployment.md` for exact environment names, migration review, and approval gates.

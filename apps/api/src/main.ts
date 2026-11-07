@@ -108,7 +108,7 @@ async function start(): Promise<void> {
     trustedProxyCidrs: environment.TRUSTED_PROXY_CIDRS
   });
 
-  const server = app.listen(port, () => {
+  const server = app.listen(port, '0.0.0.0', () => {
     console.log(`AccessLens API listening on port ${port}.`);
   });
 

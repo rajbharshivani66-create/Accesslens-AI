@@ -106,6 +106,16 @@ const apiEnvironmentSchema = z
         message: 'is required in production for shared rate-limit storage'
       });
     }
+    if (environment.NODE_ENV === 'production') {
+      const frontend = new URL(environment.FRONTEND_URL);
+      if (frontend.protocol !== 'https:' || ['localhost', '127.0.0.1', '[::1]'].includes(frontend.hostname)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['FRONTEND_URL'],
+          message: 'must be a public HTTPS origin in production'
+        });
+      }
+    }
     const jiraConfiguration = [environment.JIRA_CLIENT_ID, environment.JIRA_CLIENT_SECRET, environment.JIRA_REDIRECT_URI, environment.JIRA_TOKEN_ENCRYPTION_KEY];
     if (jiraConfiguration.some(Boolean) && !jiraConfiguration.every(Boolean)) {
       context.addIssue({

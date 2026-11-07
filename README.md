@@ -106,3 +106,7 @@ Local automated checks passed, but the dependency audit could not be completed b
 ### Phase 17 UI and accessibility status
 
 Local UI polish adds keyboard focus containment, Escape dismissal and focus restoration to Finding details; accessible chart summaries; one main landmark per authenticated page; visible focus for select controls; and reduced-motion support. Responsive breakpoints and application routes were source-audited. No authenticated browser session or frontend Playwright harness was available for full page-by-page browser verification, so viewport and manual assistive-technology results are documented as not verified in `docs/testing.md`.
+
+### Phase 18 deployment readiness
+
+Staging is **BLOCKED / NOT VERIFIED**. The API now binds on `0.0.0.0` and requires a public HTTPS `FRONTEND_URL` in production mode. The configured Render Free service does not have verified Chromium capacity/runtime setup. The Jira OAuth RLS migration is reported unapplied and the dependency audit is NOT VERIFIED. No database migration, audit upload, platform change, or deployment was performed. Read [deployment readiness and migration review](./docs/deployment.md) before requesting staging approval. A credential-like value formerly present in `.env.example` was cleared; rotate that Resend credential before any staging use.

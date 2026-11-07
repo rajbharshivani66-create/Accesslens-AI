@@ -101,3 +101,7 @@ Local hygiene checks: targeted high-confidence secret-pattern scan found no matc
 ### Phase 17 UI security and accessibility notes
 
 Finding detail focus handling is client-side only and does not change authorization. Chart summaries reuse already-authorized API response data. No API, token, environment, database, or migration changes were made. AI suggestions remain displayed as untrusted text/code and are not executed. UI/browser security behavior has not been verified in staging.
+
+## Phase 18 staging controls
+
+The API now binds to `0.0.0.0` for service ingress and fails startup in production mode unless `FRONTEND_URL` is a public HTTPS origin. CORS remains restricted to that exact origin. Production Redis remains mandatory. Do not configure a Supabase service-role key in the browser; current API source does not require it. The Jira OAuth state RLS migration is reported unapplied and remains an approval-gated blocker. The dependency vulnerability status is NOT VERIFIED because the package audit endpoint was not retried. No live staging security tests were run. A Resend credential-like value previously present in `.env.example` was removed; rotate it before staging.

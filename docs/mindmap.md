@@ -334,3 +334,7 @@ Local audit identified a missing RLS enablement on `JiraOAuthState`. The propose
 ### Phase 17 UI accessibility follow-up
 
 UI behavior improvements are localized to the Findings details dialog, Dashboard/Analytics chart summaries, global select focus styling, and reduced-motion handling. Existing app routes and API/module boundaries remain unchanged. See docs/testing.md for verification scope and blockers.
+
+### Phase 18 deployment boundary
+
+The API process hosts both HTTP routes and the polling scan worker. Vercel/Render project settings remain external and unverified. Staging requires dedicated Supabase/PostgreSQL/Redis credentials, an HTTPS frontend origin, and a verified Chromium-capable runtime. The Jira OAuth state table remains default-deny for direct clients pending approval of its RLS migration. See `docs/deployment.md`; no database or platform state was changed.

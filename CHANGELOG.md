@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased - Phase 18 staging readiness audit - 2026-11-07
+
+- Audited Vercel/Render source configuration, environment schema, API health and worker startup/shutdown, scanner limits, Playwright launch flags, and repository migration SQL without deploying or connecting to staging.
+- Replaced the populated Resend example setting with an empty placeholder; did not open or edit `.env`.
+- Bound the API explicitly to `0.0.0.0` and reject localhost/non-HTTPS `FRONTEND_URL` when `NODE_ENV=production`; added environment validation tests.
+- Documented the eight post-team-management migration candidates, prerequisites/data impact, approval and backup gates, staging variables, service-plan limitations, and rollback guidance in `docs/deployment.md`.
+- Phase 16 dependency audit remains NOT VERIFIED and Jira OAuth RLS is reported unapplied. No external audit endpoint, migration, platform setting, or deployment was used.
+
 ## Unreleased - Phase 17 UI and accessibility polish - 2026-11-07
 
 - Added keyboard focus containment, Escape dismissal, initial close-button focus, and return-focus behavior for the Findings detail dialog.
