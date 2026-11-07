@@ -131,8 +131,15 @@ async function start(): Promise<void> {
 }
 
 void start().catch((error: unknown) => {
+  const message = error instanceof Error
+    ? error.message.replace(/\b(postgres(?:ql)?|redis|rediss):\/\/[^\s"']+/gi, '$1://<redacted>')
+    : 'Unknown startup error';
   console.error('AccessLens API failed to start.', {
-    errorName: error instanceof Error ? error.name : 'UnknownError'
+    errorName: error instanceof Error ? error.name : 'UnknownError',
+    errorCode: typeof error === 'object' && error !== null && 'code' in error
+      ? String(error.code)
+      : undefined,
+    message
   });
   process.exitCode = 1;
 });
