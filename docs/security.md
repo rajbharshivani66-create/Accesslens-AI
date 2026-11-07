@@ -4,6 +4,8 @@
 
 The dark/light preference is stored only in the current browser's local storage and contains no account or project data. Empty project, finding, team-member, and Jira selectors do not fabricate choices; actual options are populated from authenticated API responses scoped to the signed-in user's access. Theme selection does not change API authorization or expose credentials.
 
+Gemini missing-credential messages now name the backend-only `GEMINI_API_KEY` setting; provider errors do not include exception details or key material. Jira rate limits are presented with the existing retry interval when available. Do not widen trusted proxy ranges or rate-limit quotas to suppress 429 responses without verifying the ingress and expected request volume.
+
 ## Identity and authorization
 
 - Supabase Auth is the identity provider. The API verifies bearer tokens with `supabase.auth.getUser(token)`.

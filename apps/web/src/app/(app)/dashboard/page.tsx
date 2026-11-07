@@ -149,9 +149,6 @@ export default function DashboardPage() {
             <option value="30d">Last 30 days</option>
             <option value="90d">Last 90 days</option>
           </select>
-          <Link className="button button-primary" href="/projects">
-            <FolderKanban size={17} /> Projects
-          </Link>
         </div>
       </div>
 

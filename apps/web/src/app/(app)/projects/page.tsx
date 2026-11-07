@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest } from '@/lib/api';
 import { useToast } from '@/components/app-shell/toast-provider';
+import { useConfirm } from '@/components/app-shell/confirm-provider';
 
 interface Project {
   id: string;
@@ -41,6 +42,7 @@ export default function ProjectsPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const { pushToast } = useToast();
+  const confirm = useConfirm();
 
   const refreshProjects = useCallback(async () => {
     const result = await apiRequest<ProjectList>('/api/projects?page=1&pageSize=100');
@@ -86,7 +88,8 @@ export default function ProjectsPage() {
   }
 
   async function deleteProject(project: Project) {
-    if (!window.confirm(`Delete "${project.name}" and its project data?`)) return;
+    const confirmed = await confirm({ title: `Delete ${project.name}?`, message: `This permanently deletes the project and its scan, finding, and verification data.`, confirmLabel: "Delete project" });
+    if (!confirmed) return;
     setError('');
     try {
       await apiRequest<void>(`/api/projects/${project.id}`, { method: 'DELETE' });

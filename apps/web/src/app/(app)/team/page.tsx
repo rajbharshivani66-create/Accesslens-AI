@@ -4,6 +4,7 @@ import { ArrowRight, Copy, Plus, RefreshCw, Shield, Trash2, Users } from 'lucide
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest } from '@/lib/api';
 import { useToast } from '@/components/app-shell/toast-provider';
+import { useConfirm } from '@/components/app-shell/confirm-provider';
 
 type TeamRole = 'OWNER' | 'ADMIN' | 'DEVELOPER' | 'VIEWER';
 type AssignableRole = Exclude<TeamRole, 'OWNER'>;
@@ -89,6 +90,7 @@ export default function TeamPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const { pushToast } = useToast();
+  const confirm = useConfirm();
 
   const refreshTeams = useCallback(async (preferredId?: string) => {
     const result = await apiRequest<TeamListItem[]>('/api/teams');
@@ -256,7 +258,9 @@ export default function TeamPage() {
     const action = member.id === team.currentMemberId
       ? `Leave ${team.name}?`
       : `Remove ${member.fullName || member.email} from ${team.name}?`;
-    if (member.role === 'OWNER' || !window.confirm(action)) return;
+    if (member.role === 'OWNER') return;
+    const confirmed = await confirm({ title: member.id === team.currentMemberId ? 'Leave this team?' : 'Remove team member?', message: `${action} This will change their access to team projects.`, confirmLabel: member.id === team.currentMemberId ? 'Leave team' : 'Remove member' });
+    if (!confirmed) return;
     setBusy(true);
     setError('');
     try {
@@ -278,7 +282,9 @@ export default function TeamPage() {
   }
 
   async function revokeInvitation(invitation: TeamInvitation) {
-    if (!team || !window.confirm(`Revoke the invitation for ${invitation.email}?`)) return;
+    if (!team) return;
+    const confirmed = await confirm({ title: 'Revoke invitation?', message: `The invitation sent to ${invitation.email} will no longer work.`, confirmLabel: 'Revoke invitation' });
+    if (!confirmed) return;
     setBusy(true);
     setError('');
     try {
@@ -297,7 +303,8 @@ export default function TeamPage() {
 
   async function deleteTeam() {
     if (!team || team.myRole !== 'OWNER') return;
-    if (!window.confirm(`Delete "${team.name}"? Its projects will become private to you.`)) return;
+    const confirmed = await confirm({ title: `Delete ${team.name}?`, message: 'This deletes the team. Its projects will become private to you.', confirmLabel: 'Delete team' });
+    if (!confirmed) return;
     setBusy(true);
     setError('');
     try {

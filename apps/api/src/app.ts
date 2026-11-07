@@ -1042,11 +1042,16 @@ export function createApp(dependencies: AppDependencies) {
         }
         response.json({ data: result });
       } catch (error) {
-        const unavailable = error instanceof Error && (error.message === 'AI_PROVIDER_UNAVAILABLE' || error.message === 'AI_PROVIDER_REQUEST_FAILED');
+        const missingCredentials = error instanceof Error && error.message === 'AI_PROVIDER_UNAVAILABLE';
+        const providerFailed = error instanceof Error && error.message === 'AI_PROVIDER_REQUEST_FAILED';
         console.error('AI finding assistance failed.', { errorName: error instanceof Error ? error.name : 'UnknownError' });
-        response.status(unavailable ? 503 : 502).json({ error: {
-          code: unavailable ? 'AI_PROVIDER_UNAVAILABLE' : 'AI_RESPONSE_INVALID',
-          message: unavailable ? 'AI assistance is unavailable. Configure a valid Gemini API key and try again.' : 'AI returned an invalid response. Please try again.'
+        response.status(missingCredentials ? 503 : 502).json({ error: {
+          code: missingCredentials ? 'AI_PROVIDER_UNAVAILABLE' : providerFailed ? 'AI_PROVIDER_REQUEST_FAILED' : 'AI_RESPONSE_INVALID',
+          message: missingCredentials
+            ? 'Gemini is not configured on the API server. Add GEMINI_API_KEY to the backend environment, then restart or redeploy the API. Never add it to a NEXT_PUBLIC_ variable.'
+            : providerFailed
+              ? 'The Gemini request failed. Check the API server’s Gemini key, model setting, and provider availability, then retry.'
+              : 'Gemini returned an invalid response. Please retry; no suggestion was saved.'
         } });
       }
     });

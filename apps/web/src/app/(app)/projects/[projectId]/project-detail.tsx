@@ -6,6 +6,7 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiRequest } from '@/lib/api';
 import { useToast } from '@/components/app-shell/toast-provider';
+import { useConfirm } from '@/components/app-shell/confirm-provider';
 
 interface Project {
   id: string;
@@ -31,6 +32,8 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const { pushToast } = useToast();
+  const confirm = useConfirm();
+  const [savedNotice, setSavedNotice] = useState(false);
 
   const loadProject = useCallback(() => {
     setLoading(true);
@@ -57,6 +60,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
         body: JSON.stringify({ name, url, description })
       });
       setProject(updated);
+      setSavedNotice(true);
       pushToast('success', 'Project changes saved.');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not update project.');
@@ -66,7 +70,9 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
   }
 
   async function removeProject() {
-    if (!project || !window.confirm(`Delete "${project.name}" and its project data?`)) return;
+    if (!project) return;
+    const confirmed = await confirm({ title: `Delete ${project.name}?`, message: 'This permanently deletes this project and its scan, finding, and verification data.', confirmLabel: 'Delete project' });
+    if (!confirmed) return;
     setBusy(true);
     setError('');
     try {
@@ -97,7 +103,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
         <div>
           <p className="eyebrow">PROJECT DETAILS</p>
           <h1>{project.name}</h1>
-          <p className="muted">Created {new Date(project.createdAt).toLocaleDateString()}</p>
+          <p className="muted">Created {new Date(project.createdAt).toLocaleDateString()} · Updated {new Date(project.updatedAt).toLocaleDateString()}</p>
         </div>
         <div className="project-actions">
           {project.canEdit && <Link className="button button-primary" href="/scanner">Run scan</Link>}
@@ -109,6 +115,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
         </div>
       </div>
       {error && <div className="alert alert-error" role="alert">{error}</div>}
+      <section className="project-summary" aria-label="Saved project details"><div><span className="eyebrow">SAVED PROJECT</span><strong>{project.name}</strong></div><div><span className="eyebrow">WEBSITE</span><a className="text-link" href={project.url} target="_blank" rel="noreferrer">{project.url}</a></div><p>{project.description || "No project description added."}</p>{savedNotice && <p className="form-success" role="status">Changes saved. This project is listed under Projects and these details are saved here.</p>}</section>
       <section className="surface-card detail-card">
         <h2>Website information</h2>
         <p className="muted">

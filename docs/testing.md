@@ -6,6 +6,9 @@
 - Projects, findings, writable findings, team members, Jira sites, and Jira projects remain sourced from authenticated API responses. Empty states explain the required action; no example records are inserted into live dropdowns.
 - Manually check both themes and navigation at desktop and narrow mobile widths. The shared authenticated shell supplies Back navigation and mobile horizontal navigation. No browser visual regression suite verifies every viewport.
 - Check empty dropdowns with an account that has no projects/findings, then create a project and complete a scan. Jira options require an authorized Jira connection.
+- The Dashboard shortcut to Projects is removed; common Back navigation sits above the page heading. Anonymous `/dashboard` requests should redirect to `/login?next=%2Fdashboard` through middleware.
+- Gemini error responses distinguish a missing backend key (503), provider request failure (502), and invalid structured output (502). Live Gemini still requires the API server's valid secret and provider/model access.
+- Jira 429 feedback uses the `Retry-After` header when the API supplies it. This does not change the API quota; production proxy IP handling still requires verified `TRUSTED_PROXY_CIDRS` ranges.
 
 ## Local commands
 

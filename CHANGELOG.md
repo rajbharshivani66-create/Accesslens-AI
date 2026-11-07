@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased - App navigation, light theme contrast, and integration errors
+
+- Moved authenticated Back navigation above page headings and removed the Dashboard Projects shortcut while preserving the trend-period filter.
+- Increased light-theme text/link contrast for forms, metrics, charts, findings details, alerts, and account controls; theme selection now exposes pressed state to assistive technology.
+- Clarified Gemini errors: missing backend key, provider request failure, and invalid model output now produce separate actionable messages. Gemini credentials remain server-only.
+- Added Jira retry guidance for API HTTP 429 responses, including the server's `Retry-After` interval where provided. No rate-limit thresholds were weakened.
+- Kept all authenticated routes behind Supabase middleware; no public dashboard access was added.
+
 ## Unreleased - UI themes, empty dropdown guidance, and landing content
 
 - Added landing page `Why AccessLens` and FAQ sections, with navigation links and narrow-screen layouts.

@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { apiRequest } from '@/lib/api';
+import { ApiRequestError, apiRequest } from '@/lib/api';
+import { useConfirm } from '@/components/app-shell/confirm-provider';
 
 type JiraSite = { id: string; name: string; url: string; scopes: string[] };
 type JiraProject = { id: string; key: string; name: string };
@@ -9,7 +10,16 @@ type JiraIssue = { id: string; jiraKey: string; title: string; status: string; u
 type Integration = { id: string; cloudId: string | null; baseUrl: string; projectKey: string; connectedAt: string | null; scopes: string[]; issues: JiraIssue[] };
 type Finding = { id: string; title: string; ruleId: string; severity: string; status: string; access: { writable: boolean } };
 
+function presentError(reason: unknown, fallback: string) {
+  if (reason instanceof ApiRequestError && reason.status === 429) {
+    const wait = reason.retryAfterSeconds ? ' Wait about ' + reason.retryAfterSeconds + ' seconds before retrying.' : ' Wait briefly before retrying.';
+    return 'The API is temporarily rate limiting requests.' + wait;
+  }
+  return reason instanceof Error ? reason.message : fallback;
+}
+
 export default function JiraPage() {
+  const confirm = useConfirm();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [findings, setFindings] = useState<Finding[]>([]);
   const [pendingState, setPendingState] = useState('');
@@ -34,7 +44,7 @@ export default function JiraPage() {
       setIntegrations(status.integrations);
       setConfigured(status.configured);
       setFindings(findingResult.items.filter((finding) => finding.access.writable));
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not load Jira integrations.'); }
+    } catch (reason) { setError(presentError(reason, 'Could not load Jira integrations.')); }
     finally { setLoading(false); }
   }, []);
 
@@ -49,7 +59,7 @@ export default function JiraPage() {
       apiRequest<{ sites: JiraSite[] }>(`/api/jira/pending?state=${encodeURIComponent(state)}`).then((pending) => {
         setSites(pending.sites);
         if (pending.sites[0]) setCloudId(pending.sites[0].id);
-      }).catch(() => setError('Jira authorization could not be completed. Start the connection again.'));
+      }).catch((reason) => setError(presentError(reason, 'Jira authorization could not be completed. Start the connection again.')));
     } else if (callbackError) {
       window.history.replaceState({}, '', window.location.pathname);
       setError(callbackError === 'no_accessible_sites' ? 'No Jira sites with the required permissions were returned.' : 'Jira authorization was not completed.');
@@ -60,7 +70,7 @@ export default function JiraPage() {
     if (!pendingState || !cloudId) { setProjects([]); return; }
     apiRequest<JiraProject[]>(`/api/jira/projects?state=${encodeURIComponent(pendingState)}&cloudId=${encodeURIComponent(cloudId)}`)
       .then((items) => { setProjects(items); setProjectKey(items[0]?.key ?? ''); })
-      .catch((reason) => setError(reason instanceof Error ? reason.message : 'Could not load Jira projects.'));
+      .catch((reason) => setError(presentError(reason, 'Could not load Jira projects.')));
   }, [pendingState, cloudId]);
 
   async function connect() {
@@ -68,7 +78,7 @@ export default function JiraPage() {
     try {
       const result = await apiRequest<{ authorizationUrl: string }>('/api/jira/connect', { method: 'POST' });
       window.location.assign(result.authorizationUrl);
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not start Jira authorization.'); setBusy(''); }
+    } catch (reason) { setError(presentError(reason, 'Could not start Jira authorization.')); setBusy(''); }
   }
 
   async function complete() {
@@ -76,16 +86,20 @@ export default function JiraPage() {
     try {
       await apiRequest('/api/jira/complete', { method: 'POST', body: JSON.stringify({ state: pendingState, cloudId, projectKey }) });
       setPendingState(''); setSites([]); setProjects([]); setNotice('Jira site and project connected.'); await load();
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not connect this Jira project.'); }
+    } catch (reason) { setError(presentError(reason, 'Could not connect this Jira project.')); }
     finally { setBusy(''); }
   }
 
   async function disconnect(integrationId: string) {
+    const integration = integrations.find((item) => item.id === integrationId);
+    if (!integration) return;
+    const confirmed = await confirm({ title: 'Disconnect Jira site?', message: `AccessLens will remove the encrypted connection to ${integration.baseUrl}. Existing Jira issue references will remain.`, confirmLabel: 'Disconnect Jira' });
+    if (!confirmed) return;
     setBusy(integrationId); setError('');
     try {
       await apiRequest<void>(`/api/jira/integrations/${integrationId}`, { method: 'DELETE' });
       setNotice('Jira disconnected. Existing issue references were retained.'); await load();
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not disconnect Jira.'); }
+    } catch (reason) { setError(presentError(reason, 'Could not disconnect Jira.')); }
     finally { setBusy(''); }
   }
 
@@ -94,7 +108,7 @@ export default function JiraPage() {
     try {
       const result = await apiRequest<{ synced: number; unavailable: number }>(`/api/jira/integrations/${integrationId}/sync`, { method: 'POST' });
       setNotice(`Synchronized ${result.synced} Jira issue status(es); ${result.unavailable} unavailable.`); await load();
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not synchronize Jira issues.'); }
+    } catch (reason) { setError(presentError(reason, 'Could not synchronize Jira issues.')); }
     finally { setBusy(''); }
   }
 
@@ -103,14 +117,14 @@ export default function JiraPage() {
     try {
       const issue = await apiRequest<JiraIssue>('/api/jira/issues', { method: 'POST', body: JSON.stringify({ findingId: finding.id, integrationId: selectedIntegrationId || undefined }) });
       setNotice(`Jira issue ${issue.jiraKey} linked to the finding.`); await load();
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not create a Jira issue.'); }
+    } catch (reason) { setError(presentError(reason, 'Could not create a Jira issue.')); }
     finally { setBusy(''); }
   }
 
   const connected = integrations.filter((item) => item.connectedAt);
   return <section className="page-stack">
     <header className="page-heading"><div><p className="eyebrow">Integrations</p><h1>Jira</h1><p className="muted">Connect a Jira Cloud site using OAuth 2.0, choose a project, and create issues from authorized accessibility findings.</p></div></header>
-    {error && <p className="form-error" role="alert">{error}</p>}{notice && <p className="form-success" role="status">{notice}</p>}
+    {error && <div className="alert alert-error" role="alert">{error} <button className="button button-secondary" onClick={() => void load()} type="button">Retry connection status</button></div>}{notice && <p className="form-success" role="status">{notice}</p>}
     <section className="panel"><h2>Connect a Jira site</h2><p className="muted">Access tokens stay encrypted on the API server. Jira permissions still apply to the authorizing account.</p>{!configured && <p className="form-error">Jira OAuth is not configured by the server administrator.</p>}<button className="button button-primary" disabled={!configured || busy === 'connect'} onClick={() => void connect()}>{busy === 'connect' ? 'Redirecting…' : 'Connect Jira with OAuth'}</button></section>
     {pendingState && <section className="panel form-stack"><h2>Choose site and project</h2><label>Jira site<select value={cloudId} onChange={(event) => setCloudId(event.target.value)}>{sites.length === 0 && <option value="">No accessible Jira sites found</option>}{sites.map((site) => <option key={site.id} value={site.id}>{site.name} ({site.url})</option>)}</select></label><label>Project<select value={projectKey} onChange={(event) => setProjectKey(event.target.value)}>{projects.length === 0 && <option value="">Select a Jira site to load projects</option>}{projects.map((project) => <option key={project.id} value={project.key}>{project.key} · {project.name}</option>)}</select></label><button className="button button-primary" disabled={!projectKey || busy === 'complete'} onClick={() => void complete()}>{busy === 'complete' ? 'Connecting…' : 'Save Jira project'}</button></section>}
     {loading ? <section className="panel" role="status">Loading Jira connections…</section> : connected.length === 0 ? <section className="panel"><h2>No connected Jira sites</h2><p className="muted">Authorize a site to enable issue creation.</p></section> : <section className="finding-list" aria-label="Connected Jira integrations">{connected.map((integration) => <article className="panel finding-card" key={integration.id}><div className="finding-card-heading"><div><p className="eyebrow">Connected · {integration.scopes.join(', ')}</p><h2>{integration.baseUrl}</h2><p className="muted">Project {integration.projectKey}</p></div><div className="finding-actions"><button className="button button-secondary" disabled={busy === `sync-${integration.id}`} onClick={() => void sync(integration.id)}>{busy === `sync-${integration.id}` ? 'Syncing…' : 'Sync issue status'}</button><button className="button button-secondary" disabled={busy === integration.id} onClick={() => void disconnect(integration.id)}>Disconnect</button></div></div><h3>Recent linked issues</h3>{integration.issues.length === 0 ? <p className="muted">No issues have been created from AccessLens findings.</p> : <ul>{integration.issues.map((issue) => <li key={issue.id}>{issue.url ? <a className="text-link" href={issue.url} target="_blank" rel="noreferrer">{issue.jiraKey}</a> : issue.jiraKey} · {issue.title} · {issue.status} · {issue.lastSyncedAt ? `Synced ${new Date(issue.lastSyncedAt).toLocaleString()}` : 'Not synced yet'}</li>)}</ul>}</article>)}</section>}

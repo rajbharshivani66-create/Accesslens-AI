@@ -11,7 +11,8 @@ interface ApiErrorBody {
 export class ApiRequestError extends Error {
   constructor(
     message: string,
-    public readonly status: number
+    public readonly status: number,
+    public readonly retryAfterSeconds?: number
   ) {
     super(message);
     this.name = 'ApiRequestError';
@@ -70,7 +71,12 @@ export async function apiRequest<T>(
   }
   if (!response.ok) {
     const message = (body as ApiErrorBody).error?.message;
-    throw new ApiRequestError(message ?? 'The request could not be completed.', response.status);
+    const retryAfterHeader = Number(response.headers.get('Retry-After'));
+    throw new ApiRequestError(
+      message ?? 'The request could not be completed.',
+      response.status,
+      Number.isFinite(retryAfterHeader) && retryAfterHeader > 0 ? retryAfterHeader : undefined
+    );
   }
 
   return (body as { data: T }).data;

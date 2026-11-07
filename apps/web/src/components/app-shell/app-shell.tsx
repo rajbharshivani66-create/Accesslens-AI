@@ -175,9 +175,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="main-column">
         <header className="topbar">
           <div className="topbar-leading">
-            <button aria-label="Go back to the previous page" className="back-button" onClick={goBack} type="button">
-              <ArrowLeft aria-hidden="true" size={16} /><span>Back</span>
-            </button>
             <div className="topbar-context">
               <Shield size={16} aria-hidden="true" />
               <span>Accessibility workspace</span>
@@ -198,7 +195,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         </header>
-        <main className="main-content">{children}</main>
+        <main className="main-content">
+          <div className="page-back-wrap">
+            <button aria-label="Go back to the previous page" className="back-button" onClick={goBack} type="button">
+              <ArrowLeft aria-hidden="true" size={16} /><span>Back</span>
+            </button>
+          </div>
+          {children}
+        </main>
       </div>
     </div>
   );

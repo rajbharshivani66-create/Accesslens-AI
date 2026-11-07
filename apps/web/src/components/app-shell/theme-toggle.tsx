@@ -24,7 +24,7 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
 
   const label = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
   return (
-    <button aria-label={label} className={`theme-toggle ${className}`.trim()} onClick={toggleTheme} title={label} type="button">
+    <button aria-label={label} aria-pressed={theme === 'light'} className={`theme-toggle ${className}`.trim()} onClick={toggleTheme} title={label} type="button">
       {theme === 'dark' ? <Sun aria-hidden="true" size={17} /> : <Moon aria-hidden="true" size={17} />}
     </button>
   );
