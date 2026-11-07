@@ -153,6 +153,18 @@ export function createGeminiInteractionsRequest(
       return responseText;
     } catch (error) {
       if (error instanceof Error && error.message.startsWith('AI_PROVIDER_')) throw error;
+      // Keep provider diagnostics useful without forwarding Google response bodies,
+      // which can contain request details. ApiError.status is the SDK's documented
+      // HTTP status field; network/abort errors have no status.
+      const status = error && typeof error === 'object' && 'status' in error
+        ? Number((error as { status?: unknown }).status)
+        : undefined;
+      if (controller.signal.aborted || (error instanceof Error && error.name === 'AbortError')) {
+        throw new Error('AI_PROVIDER_TIMEOUT');
+      }
+      if (status === 401 || status === 403) throw new Error('AI_PROVIDER_AUTH_FAILED');
+      if (status === 404) throw new Error('AI_PROVIDER_MODEL_UNAVAILABLE');
+      if (status === 429) throw new Error('AI_PROVIDER_RATE_LIMITED');
       throw new Error('AI_PROVIDER_REQUEST_FAILED');
     } finally { clearTimeout(timeout); }
   };

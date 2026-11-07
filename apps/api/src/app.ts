@@ -1043,14 +1043,27 @@ export function createApp(dependencies: AppDependencies) {
         response.json({ data: result });
       } catch (error) {
         const missingCredentials = error instanceof Error && error.message === 'AI_PROVIDER_UNAVAILABLE';
-        const providerFailed = error instanceof Error && error.message === 'AI_PROVIDER_REQUEST_FAILED';
-        console.error('AI finding assistance failed.', { errorName: error instanceof Error ? error.name : 'UnknownError' });
-        response.status(missingCredentials ? 503 : 502).json({ error: {
-          code: missingCredentials ? 'AI_PROVIDER_UNAVAILABLE' : providerFailed ? 'AI_PROVIDER_REQUEST_FAILED' : 'AI_RESPONSE_INVALID',
+        const providerCode = error instanceof Error && /^AI_PROVIDER_(?:AUTH_FAILED|MODEL_UNAVAILABLE|RATE_LIMITED|TIMEOUT|REQUEST_FAILED)$/.test(error.message)
+          ? error.message
+          : null;
+        const providerMessages: Record<string, string> = {
+          AI_PROVIDER_AUTH_FAILED: 'Google rejected the Gemini credentials. Check that the rotated GEMINI_API_KEY is set on the API server and is enabled for the Gemini API.',
+          AI_PROVIDER_MODEL_UNAVAILABLE: 'The configured Gemini model is unavailable for this API key. Check GEMINI_MODEL and the key’s model access.',
+          AI_PROVIDER_RATE_LIMITED: 'Gemini rate limit reached. Wait briefly and retry, or check the Google AI quota for this key.',
+          AI_PROVIDER_TIMEOUT: 'Gemini took too long to respond. Retry in a moment.',
+          AI_PROVIDER_REQUEST_FAILED: 'The API server could not reach Gemini. Check provider availability and the API server network, then retry.'
+        };
+        console.error('AI finding assistance failed.', {
+          errorName: error instanceof Error ? error.name : 'UnknownError',
+          providerCode: missingCredentials ? 'AI_PROVIDER_UNAVAILABLE' : providerCode ?? 'AI_RESPONSE_INVALID'
+        });
+        const code = missingCredentials ? 'AI_PROVIDER_UNAVAILABLE' : providerCode ?? 'AI_RESPONSE_INVALID';
+        response.status(missingCredentials ? 503 : code === 'AI_PROVIDER_RATE_LIMITED' ? 429 : 502).json({ error: {
+          code,
           message: missingCredentials
             ? 'Gemini is not configured on the API server. Add GEMINI_API_KEY to the backend environment, then restart or redeploy the API. Never add it to a NEXT_PUBLIC_ variable.'
-            : providerFailed
-              ? 'The Gemini request failed. Check the API server’s Gemini key, model setting, and provider availability, then retry.'
+            : providerCode
+              ? providerMessages[providerCode]
               : 'Gemini returned an invalid response. Please retry; no suggestion was saved.'
         } });
       }
