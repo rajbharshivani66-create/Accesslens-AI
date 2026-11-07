@@ -1,5 +1,12 @@
 ﻿# Testing and Verification
 
+## UI theme, responsive layout, and data-dependent filters
+
+- The landing page includes `Why AccessLens` and FAQ sections. Theme controls are available on landing, authentication, and authenticated workspace layouts; they persist `accesslens-theme` in browser local storage.
+- Projects, findings, writable findings, team members, Jira sites, and Jira projects remain sourced from authenticated API responses. Empty states explain the required action; no example records are inserted into live dropdowns.
+- Manually check both themes and navigation at desktop and narrow mobile widths. The shared authenticated shell supplies Back navigation and mobile horizontal navigation. No browser visual regression suite verifies every viewport.
+- Check empty dropdowns with an account that has no projects/findings, then create a project and complete a scan. Jira options require an authorized Jira connection.
+
 ## Local commands
 
 Run from the repository root:

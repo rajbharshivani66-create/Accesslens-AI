@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ThemeToggle } from '@/components/app-shell/theme-toggle';
 import { Activity, ArrowDownRight, ArrowRight, Check, CircleHelp, Eye, ScanSearch, ShieldCheck, Sparkles, WandSparkles } from 'lucide-react';
 
 const features = [
@@ -36,8 +37,11 @@ export default function HomePage() {
         <nav className="landing-nav-links" aria-label="Main navigation">
           <a href="#how-it-works">How it works</a>
           <a href="#features">Features</a>
+          <a href="#why-accesslens">Why AccessLens</a>
+          <a href="#faq">FAQ</a>
         </nav>
         <div className="landing-nav-actions">
+          <ThemeToggle className="landing-theme-toggle" />
           <Link className="landing-login" href="/login">Log in</Link>
           <Link className="landing-nav-cta" href="/register">Get started <ArrowRight size={15} /></Link>
         </div>
@@ -93,6 +97,25 @@ export default function HomePage() {
       <section className="landing-how" id="how-it-works">
         <div className="how-copy"><div className="landing-eyebrow">A PRACTICAL WORKFLOW</div><h2>Make the next right fix.</h2><p>AccessLens helps your team move from a URL to an informed, trackable accessibility review.</p><Link className="landing-text-link" href="/register">Explore your workspace <ArrowRight size={16} /></Link></div>
         <div className="how-steps"><div className="how-step"><span className="step-index">01</span><div><h3>Scan a page</h3><p>Start with a website and see what automated checks can identify.</p></div><span className="step-symbol"><ScanSearch size={17} /></span></div><div className="how-step"><span className="step-index">02</span><div><h3>Review the context</h3><p>Understand the impact, affected elements, and relevant accessibility guidance.</p></div><span className="step-symbol"><CircleHelp size={17} /></span></div><div className="how-step"><span className="step-index">03</span><div><h3>Improve together</h3><p>Prioritize changes with your team and verify progress with another scan.</p></div><span className="step-symbol"><Sparkles size={17} /></span></div></div>
+      </section>
+
+      <section className="landing-why" id="why-accesslens">
+        <div className="landing-section-heading"><div className="landing-eyebrow">WHY ACCESSLENS</div><h2>Clear evidence. Practical next steps.</h2><p>Accessibility work is easier to sustain when teams can see what matters and track what changed.</p></div>
+        <div className="why-grid">
+          <article className="why-card"><span>01</span><h3>Start with real scans</h3><p>Run checks against saved project pages and keep results tied to the site your team is improving.</p></article>
+          <article className="why-card"><span>02</span><h3>Understand the impact</h3><p>Review severity, affected pages, and WCAG context so developers can prioritize informed fixes.</p></article>
+          <article className="why-card"><span>03</span><h3>Keep people in control</h3><p>AI suggestions are guidance for human review. Nothing is applied to your code automatically.</p></article>
+        </div>
+      </section>
+
+      <section className="landing-faq" id="faq">
+        <div className="landing-section-heading"><div className="landing-eyebrow">FREQUENTLY ASKED QUESTIONS</div><h2>Good to know before your first scan.</h2></div>
+        <div className="faq-list">
+          <details><summary>Does an automated scan prove WCAG compliance?</summary><p>No. Automated checks detect only some accessibility issues. A human review and assistive-technology testing are still important.</p></details>
+          <details><summary>Can AccessLens change my website automatically?</summary><p>No. Fix suggestions are examples for a developer to review, adapt, and test in the source project.</p></details>
+          <details><summary>How do I get findings into the workspace?</summary><p>Create a project, add its website URL, then run a scan. Findings and project filters populate from saved scan results.</p></details>
+          <details><summary>Can my team share projects?</summary><p>Yes. Create a team, invite members, and assign projects according to each member’s role.</p></details>
+        </div>
       </section>
 
       <section className="landing-cta"><div className="cta-glow" aria-hidden="true" /><div className="landing-eyebrow">BETTER EXPERIENCES START WITH A FIRST STEP</div><h2>Make your next website<br />more inclusive.</h2><p>Bring your team together around clearer accessibility work.</p><Link className="landing-primary-button" href="/register">Get started with AccessLens <ArrowRight size={17} /></Link></section>

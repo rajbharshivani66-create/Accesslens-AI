@@ -1,5 +1,9 @@
 # Deployment and Local Setup
 
+## Landing and workspace presentation
+
+The landing page includes How it works, Features, Why AccessLens, and FAQ sections. Dark/light mode is a client-side preference stored in local storage and is available on landing, login/register, and signed-in workspace screens. Data-dependent dropdowns are empty until authorized records exist; configure a reachable API and create projects, scans, teams, or Jira connections to populate them. No database or hosting variables are needed for theme selection.
+
 ## Local Supabase configuration
 
 1. Copy the root `.env.example` to `.env`.

@@ -1,5 +1,9 @@
 # Security Notes
 
+## UI theme and data visibility
+
+The dark/light preference is stored only in the current browser's local storage and contains no account or project data. Empty project, finding, team-member, and Jira selectors do not fabricate choices; actual options are populated from authenticated API responses scoped to the signed-in user's access. Theme selection does not change API authorization or expose credentials.
+
 ## Identity and authorization
 
 - Supabase Auth is the identity provider. The API verifies bearer tokens with `supabase.auth.getUser(token)`.

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased - UI themes, empty dropdown guidance, and landing content
+
+- Added landing page `Why AccessLens` and FAQ sections, with navigation links and narrow-screen layouts.
+- Added a persistent browser-local dark/light theme toggle to landing, auth screens, and the authenticated workspace.
+- Added common Back navigation to authenticated pages, removed the secure-session text pill, and displayed account initials in circular avatars.
+- Added clear empty options and next-step links for project/finding/team assignment selectors; choices continue to come from authorized API data rather than placeholders.
+- Added shared responsive rules and documented manual theme, empty-state, and viewport verification. No API, schema, or migration changes.
+
 ## Unreleased - Live frontend integration fixes
 
 - Replaced the production localhost API fallback with an actionable configuration error and clearer network/API response failures; development still defaults to the local API.

@@ -2,6 +2,7 @@
 
 import {
   Activity,
+  ArrowLeft,
   Bell,
   Blocks,
   Bug,
@@ -17,10 +18,11 @@ import {
   Users
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { apiRequest } from '@/lib/api';
+import { ThemeToggle } from './theme-toggle';
 
 const navigation = [
   { label: 'Dashboard', href: '/dashboard', icon: Gauge },
@@ -44,10 +46,29 @@ interface ProfileSummary {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [profile, setProfile] = useState<ProfileSummary | null>(null);
   const [error, setError] = useState('');
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [signingOut, setSigningOut] = useState(false);
+  const accountName = profile?.fullName?.trim() || profile?.email || 'Account';
+  const avatarInitials = profile?.fullName?.trim()
+    ? profile.fullName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
+    : accountName.slice(0, 1).toUpperCase();
+
+  useEffect(() => {
+    try {
+      const key = 'accesslens-app-navigation';
+      const saved = JSON.parse(window.sessionStorage.getItem(key) ?? '[]') as string[];
+      const history = saved.filter((path) => navigation.some(({ href }) => path === href || path.startsWith(`${href}/`)));
+      if (history.at(-1) !== pathname) {
+        history.push(pathname);
+        window.sessionStorage.setItem(key, JSON.stringify(history.slice(-30)));
+      }
+    } catch {
+      // Back navigation falls back to the dashboard when browser storage is unavailable.
+    }
+  }, [pathname]);
 
   useEffect(() => {
     let active = true;
@@ -88,6 +109,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       setError(cause instanceof Error ? cause.message : 'Could not sign out.');
       setSigningOut(false);
     }
+  }
+
+  function goBack() {
+    const key = 'accesslens-app-navigation';
+    try {
+      const saved = JSON.parse(window.sessionStorage.getItem(key) ?? '[]') as string[];
+      const history = saved.filter((path) => navigation.some(({ href }) => path === href || path.startsWith(`${href}/`)));
+      if (history.at(-1) !== pathname) history.push(pathname);
+      if (history.length > 1) {
+        history.pop();
+        const previous = history.at(-1);
+        window.sessionStorage.setItem(key, JSON.stringify(history));
+        if (previous) {
+          router.push(previous);
+          return;
+        }
+      }
+    } catch {
+      // Use the dashboard fallback below.
+    }
+    router.push('/dashboard');
   }
 
   return (
@@ -132,19 +174,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
       <div className="main-column">
         <header className="topbar">
-          <div className="topbar-context">
-            <Shield size={16} aria-hidden="true" />
-            <span>Accessibility workspace</span>
+          <div className="topbar-leading">
+            <button aria-label="Go back to the previous page" className="back-button" onClick={goBack} type="button">
+              <ArrowLeft aria-hidden="true" size={16} /><span>Back</span>
+            </button>
+            <div className="topbar-context">
+              <Shield size={16} aria-hidden="true" />
+              <span>Accessibility workspace</span>
+            </div>
           </div>
           <div className="topbar-actions">
             {error && <span className="topbar-error" role="status">{error}</span>}
+            <ThemeToggle />
             <Link aria-label={`Notifications${unreadNotifications ? `, ${unreadNotifications} unread` : ''}`} className="notification-bell" href="/notifications" title="Notifications">
               <Bell aria-hidden="true" size={18} />
               {unreadNotifications > 0 && <span className="notification-badge">{unreadNotifications > 99 ? '99+' : unreadNotifications}</span>}
             </Link>
-            <span className="secure-pill"><span /> Secure session</span>
-            <Link aria-label="Profile settings" className="topbar-profile" href="/settings">
-              {profile?.fullName || profile?.email || 'Account'}
+            <Link aria-label={`Account settings for ${accountName}`} className="topbar-avatar" href="/settings" title={accountName}>
+              {avatarInitials}
             </Link>
             <button aria-label={signingOut ? 'Signing out' : 'Sign out'} className="icon-button" disabled={signingOut} onClick={signOut} title={signingOut ? 'Signing out' : 'Sign out'}>
               <LogOut size={17} />

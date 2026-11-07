@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { apiRequest } from '@/lib/api';
 
 type FindingOption = { id: string; title: string; ruleId: string; severity: string; status: string; access: { writable: boolean; projectName: string } };
@@ -57,7 +58,8 @@ export default function AIFixesPage() {
     <header className="page-heading"><div><p className="eyebrow">Assisted remediation</p><h1>AI explanations and fixes</h1><p className="muted">Gemini provides WCAG context and illustrative HTML/JSX suggestions. Review every suggestion and test it in your own codebase. Generated code is never executed or applied automatically.</p></div></header>
     {error && <p className="form-error" role="alert">{error}</p>}{notice && <p className="form-success" role="status">{notice}</p>}
     <section className="panel"><div className="form-stack">
-      <label>Finding<select value={selectedId} onChange={(event) => setSelectedId(event.target.value)} disabled={loading || busy}><option value="">Select a writable finding</option>{findings.map((finding) => <option key={finding.id} value={finding.id}>{finding.severity} · {finding.title} ({finding.access.projectName})</option>)}</select></label>
+      <label>Finding<select value={selectedId} onChange={(event) => setSelectedId(event.target.value)} disabled={loading || busy}><option value="">{loading ? 'Loading findings…' : 'Select a writable finding'}</option>{!loading && findings.length === 0 && <option disabled>{error ? 'Findings unavailable — check API connection' : 'No writable findings — create a project and run a scan'}</option>}{findings.map((finding) => <option key={finding.id} value={finding.id}>{finding.severity} · {finding.title} ({finding.access.projectName})</option>)}</select></label>
+      {!loading && findings.length === 0 && <div className="finding-actions">{error && <button className="button button-secondary" onClick={() => void load()}>Retry</button>}<Link className="button button-secondary" href="/projects">Create a project</Link><Link className="button button-primary" href="/scanner">Open scanner</Link></div>}
       <div className="finding-actions"><button className="button button-primary" onClick={() => void generate('/api/ai/explain')} disabled={!selectedId || busy || loading}>{busy ? 'Generating…' : 'Explain with AI'}</button><button className="button button-secondary" onClick={() => void generate('/api/ai/fix-suggestions')} disabled={!selectedId || busy || loading}>{busy ? 'Generating…' : 'Generate fix suggestions'}</button></div>
       {copied && <p className="form-success" role="status">{copied}</p>}
       <p className="muted">Automated axe results cover only a subset of accessibility checks. A human must review WCAG criteria and test the change. AI output can be incorrect.</p>

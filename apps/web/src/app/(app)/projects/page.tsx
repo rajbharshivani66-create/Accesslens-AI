@@ -191,6 +191,7 @@ export default function ProjectsPage() {
               Share with team
               <select onChange={(event) => setTeamId(event.target.value)} value={teamId}>
                 <option value="">Personal project</option>
+                {availableTeams.length === 0 && <option disabled>{error ? 'Team options unavailable — check API connection' : 'No teams yet — create one from Team'}</option>}
                 {availableTeams.map((team) => (
                   <option key={team.id} value={team.id}>{team.name} · {team.myRole.toLowerCase()}</option>
                 ))}
