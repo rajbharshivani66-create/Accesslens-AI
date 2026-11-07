@@ -113,9 +113,9 @@ describe('API environment validation', () => {
       RATE_LIMIT_REDIS_URL: 'rediss://rate-limiter.example.test:6380/0'
     };
 
-    expect(() => parseApiEnvironment(production)).toThrow(/FRONTEND_URL: must be a public HTTPS origin in production/);
+    expect(() => parseApiEnvironment(production)).toThrow(/FRONTEND_URL: must be HTTPS and must not target localhost in production/);
     expect(() => parseApiEnvironment({ ...production, FRONTEND_URL: 'http://accesslens.example.test' }))
-      .toThrow(/FRONTEND_URL: must be a public HTTPS origin in production/);
+      .toThrow(/FRONTEND_URL: must be HTTPS and must not target localhost in production/);
     expect(parseApiEnvironment({ ...production, FRONTEND_URL: 'https://accesslens.example.test' }).FRONTEND_URL)
       .toBe('https://accesslens.example.test');
   });

@@ -197,3 +197,15 @@ Status: NOT VERIFIED. No authenticated browser session or frontend browser-test 
 ### Limits
 
 No live services, production accounts, or populated production data were used. Automated axe results, if any, apply only to the controlled scanner fixtures and do not establish WCAG 2.2 AA conformance for the application.
+
+## Phase 18 deployment-readiness verification
+
+- `pnpm typecheck`: passed, 2 Turbo tasks.
+- `pnpm test`: passed, 21 files / 114 tests. `scanner-browser.test.ts` launched local Playwright Chromium on a controlled local fixture; `playwright-axe-scanner.test.ts` passed 5 scanner-target tests. No remote target or staging credentials were used.
+- `pnpm lint`: passed for the configured web lint task; no API lint script is configured.
+- `pnpm build`: passed, 4 Turbo tasks and 21 Next static pages. Turbo emitted its no-output warning for the Visual Agent overlay `tsc --noEmit` build task; the task and overall build succeeded.
+- `pnpm db:validate`: passed with disposable process-local PostgreSQL URL placeholders. It made no database connection and applied no migrations.
+- Built `.next/static` scan: no server-only credential variable names found. `.env.example` Resend setting is blank; `.env` was not manually opened or edited. Next loaded it during the normal local build without printing values.
+- `git diff --check`: passed with Git LF-to-CRLF working-copy notices.
+
+No `prisma migrate status`, live PostgreSQL/RLS query, backup, Vercel/Render dashboard inspection, dependency audit, staging API/website request, external Gemini/Jira/Resend/Redis request, migration, or deployment was performed. The Jira OAuth RLS migration is reported unapplied; live status of all other post-base migrations is NOT VERIFIED. Dependency audit is NOT VERIFIED (endpoint remains approval-gated). Local Playwright success is not Render Chromium/runtime verification. E2E, staging, production, monitoring, rollback execution, and live integration statuses remain NOT VERIFIED.

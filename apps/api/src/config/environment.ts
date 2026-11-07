@@ -112,7 +112,7 @@ const apiEnvironmentSchema = z
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['FRONTEND_URL'],
-          message: 'must be a public HTTPS origin in production'
+          message: 'must be HTTPS and must not target localhost in production'
         });
       }
     }

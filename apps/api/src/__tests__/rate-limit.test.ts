@@ -216,6 +216,7 @@ describe('API rate limiting', () => {
       SUPABASE_URL: 'https://project.example.supabase.co',
       SUPABASE_ANON_KEY: 'test-anon-key',
       NODE_ENV: 'production',
+      FRONTEND_URL: 'https://accesslens.example.test',
       RATE_LIMIT_REDIS_URL: 'redis://127.0.0.1:1'
     });
 

@@ -1,8 +1,24 @@
 services:
   - type: web
     name: accesslens-api
-    env: node
+    runtime: node
     plan: free
-    buildCommand: cd apps/api && pnpm install && pnpm build
-    startCommand: cd apps/api && pnpm start
+    rootDir: .
+    buildCommand: pnpm install --frozen-lockfile && pnpm db:generate && pnpm --filter @accesslens-ai/api exec playwright install chromium --only-shell && pnpm --filter @accesslens-ai/api build
+    startCommand: pnpm --filter @accesslens-ai/api start
     healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: RATE_LIMIT_REDIS_URL
+        sync: false
