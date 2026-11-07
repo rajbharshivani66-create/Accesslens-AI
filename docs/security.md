@@ -105,3 +105,7 @@ Finding detail focus handling is client-side only and does not change authorizat
 ## Phase 18 staging controls
 
 The API now binds to `0.0.0.0` for service ingress and fails startup in production mode unless `FRONTEND_URL` uses HTTPS and is not localhost. CORS remains restricted to that exact origin. Production Redis remains mandatory. Do not configure a Supabase service-role key in the browser; current API source does not require it. The Jira OAuth state RLS migration is reported unapplied and remains an approval-gated blocker. The dependency vulnerability status is NOT VERIFIED because the package audit endpoint was not retried. No live staging security tests were run. A Resend credential-like value previously present in `.env.example` was removed; rotate it before staging.
+
+### Live auth callback and frontend API configuration
+
+The web callback exchanges Supabase PKCE codes and supported email OTP `token_hash` types, then uses a same-origin safe destination. Invalid or expired links return to login with a user-facing message; raw callback codes/tokens are not included in error output. The web API client uses localhost only during development. A deployed browser must receive the real HTTPS API origin through `NEXT_PUBLIC_API_URL`; API CORS must allow the exact deployed Vercel origin through server-only `FRONTEND_URL`. Never put database URLs, service-role keys, Gemini/Jira/Resend secrets, or Redis credentials in Vercel `NEXT_PUBLIC_` variables.

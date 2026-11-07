@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased - Live frontend integration fixes
+
+- Replaced the production localhost API fallback with an actionable configuration error and clearer network/API response failures; development still defaults to the local API.
+- Added a top-bar notifications icon with an unread count refreshed while navigating and periodically, and made logout perform a full navigation after Supabase clears the session.
+- Extended the Supabase callback to support both PKCE code and supported email `token_hash` confirmation links, with a useful login message for invalid or expired links.
+- Protected the Activity route in the web middleware and documented exact Vercel API URL, API CORS origin, and Supabase live callback setup. Live values still need to be configured in the hosting dashboards.
+
 ## Unreleased - Phase 18 staging readiness audit - 2026-11-07
 
 - Audited Vercel/Render source configuration, environment schema, API health and worker startup/shutdown, scanner limits, Playwright launch flags, and repository migration SQL without deploying or connecting to staging.

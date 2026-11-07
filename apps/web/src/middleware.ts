@@ -11,6 +11,7 @@ const protectedPrefixes = [
   '/jira',
   '/analytics',
   '/team',
+  '/activity',
   '/notifications',
   '/settings'
 ];

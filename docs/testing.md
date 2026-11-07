@@ -209,3 +209,11 @@ No live services, production accounts, or populated production data were used. A
 - `git diff --check`: passed with Git LF-to-CRLF working-copy notices.
 
 No `prisma migrate status`, live PostgreSQL/RLS query, backup, Vercel/Render dashboard inspection, dependency audit, staging API/website request, external Gemini/Jira/Resend/Redis request, migration, or deployment was performed. The Jira OAuth RLS migration is reported unapplied; live status of all other post-base migrations is NOT VERIFIED. Dependency audit is NOT VERIFIED (endpoint remains approval-gated). Local Playwright success is not Render Chromium/runtime verification. E2E, staging, production, monitoring, rollback execution, and live integration statuses remain NOT VERIFIED.
+
+## Live frontend integration follow-up - 2026-11-07
+
+- Reviewed user-provided Vercel screenshots for `https://accesslens-ai-web.vercel.app`; authenticated pages showed API `Failed to fetch`. The previously supplied `https://your-api.onrender.com` value is an example placeholder, not evidence of a reachable Render service. The exact deployed API URL is still needed to verify data fetching.
+- Updated web API errors to distinguish missing production API configuration, network/CORS reachability, and non-JSON API responses. Kept the localhost default development-only.
+- Added a top-bar notifications link with unread count polling and improved logout to perform a full navigation after Supabase sign-out.
+- Added Supabase email callback support for PKCE codes and allowed `token_hash` confirmation links; protected `/activity` in middleware.
+- `apps/web` TypeScript check passed using `tsc --noEmit --incremental false -p apps/web/tsconfig.json`. No automated tests or live service requests were run. Supabase redirect allowlisting, actual Render URL, CORS, signup email delivery/link behavior, authenticated page data, and mobile browser rendering still require live configuration and verification.

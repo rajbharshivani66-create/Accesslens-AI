@@ -30,7 +30,7 @@ const headings: Record<AuthMode, { title: string; description: string; button: s
   }
 };
 
-export function AuthForm({ mode, nextPath }: { mode: AuthMode; nextPath?: string }) {
+export function AuthForm({ mode, nextPath, authError }: { mode: AuthMode; nextPath?: string; authError?: string }) {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,6 +40,12 @@ export function AuthForm({ mode, nextPath }: { mode: AuthMode; nextPath?: string
   const [busy, setBusy] = useState(false);
   const configured = hasSupabaseBrowserConfig();
   const heading = headings[mode];
+
+  const callbackMessage = authError === 'invalid-link'
+    ? 'This confirmation link is incomplete. Request a new link and open it on the same AccessLens site where you signed up.'
+    : authError === 'link-expired'
+      ? 'This confirmation link has expired or was already used. Sign in or request a fresh confirmation link.'
+      : '';
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -111,6 +117,7 @@ export function AuthForm({ mode, nextPath }: { mode: AuthMode; nextPath?: string
           </div>
         )}
         {error && <div className="alert alert-error" role="alert">{error}</div>}
+        {callbackMessage && <div className="alert alert-error" role="alert">{callbackMessage}</div>}
         {message && <div className="alert alert-success" role="status">{message}</div>}
 
         <form className="form-stack" onSubmit={handleSubmit}>

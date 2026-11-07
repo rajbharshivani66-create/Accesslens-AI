@@ -17,7 +17,7 @@ import {
   Users
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { apiRequest } from '@/lib/api';
@@ -44,9 +44,10 @@ interface ProfileSummary {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [profile, setProfile] = useState<ProfileSummary | null>(null);
   const [error, setError] = useState('');
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -63,15 +64,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    const loadUnread = () => {
+      apiRequest<{ unread: number }>('/api/notifications?page=1&pageSize=1')
+        .then((result) => { if (active) setUnreadNotifications(result.unread); })
+        .catch(() => { if (active) setUnreadNotifications(0); });
+    };
+    loadUnread();
+    const timer = window.setInterval(loadUnread, 60_000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [pathname]);
+
   async function signOut() {
+    if (signingOut) return;
+    setSigningOut(true);
     try {
       const supabase = createSupabaseBrowserClient();
       const { error: signOutError } = await supabase.auth.signOut();
       if (signOutError) throw signOutError;
-      router.replace('/login');
-      router.refresh();
+      window.location.replace('/login');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not sign out.');
+      setSigningOut(false);
     }
   }
 
@@ -109,7 +124,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <strong>{profile?.fullName || 'Your account'}</strong>
               <span>{profile?.email ?? 'Loading profile…'}</span>
             </div>
-            <button aria-label="Sign out" className="icon-button" onClick={signOut} title="Sign out">
+            <button aria-label={signingOut ? 'Signing out' : 'Sign out'} className="icon-button" disabled={signingOut} onClick={signOut} title={signingOut ? 'Signing out' : 'Sign out'}>
               <LogOut size={17} />
             </button>
           </div>
@@ -123,11 +138,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="topbar-actions">
             {error && <span className="topbar-error" role="status">{error}</span>}
+            <Link aria-label={`Notifications${unreadNotifications ? `, ${unreadNotifications} unread` : ''}`} className="notification-bell" href="/notifications" title="Notifications">
+              <Bell aria-hidden="true" size={18} />
+              {unreadNotifications > 0 && <span className="notification-badge">{unreadNotifications > 99 ? '99+' : unreadNotifications}</span>}
+            </Link>
             <span className="secure-pill"><span /> Secure session</span>
             <Link aria-label="Profile settings" className="topbar-profile" href="/settings">
               {profile?.fullName || profile?.email || 'Account'}
             </Link>
-            <button aria-label="Sign out" className="icon-button" onClick={signOut} title="Sign out">
+            <button aria-label={signingOut ? 'Signing out' : 'Sign out'} className="icon-button" disabled={signingOut} onClick={signOut} title={signingOut ? 'Signing out' : 'Sign out'}>
               <LogOut size={17} />
             </button>
           </div>

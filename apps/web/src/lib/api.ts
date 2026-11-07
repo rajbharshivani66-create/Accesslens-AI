@@ -33,18 +33,27 @@ export async function apiRequest<T>(
     throw new Error('Your session has expired. Sign in again to continue.');
   }
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+  const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+  const apiUrl = (configuredApiUrl || (process.env.NODE_ENV === 'development' ? 'http://localhost:4000' : '')).replace(/\/+$/, '');
+  if (!apiUrl) {
+    throw new Error('The live API URL is not configured. Add NEXT_PUBLIC_API_URL in Vercel using the public URL of your deployed API service, then redeploy.');
+  }
   const headers = new Headers(init.headers);
   headers.set('Authorization', `Bearer ${accessToken}`);
   if (init.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(`${apiUrl}${path}`, {
-    ...init,
-    headers,
-    cache: 'no-store'
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${apiUrl}${path}`, {
+      ...init,
+      headers,
+      cache: 'no-store'
+    });
+  } catch {
+    throw new Error('AccessLens could not reach its API. Check that NEXT_PUBLIC_API_URL is the real deployed API URL, that the API is running, and that its CORS FRONTEND_URL matches this Vercel site.');
+  }
 
   if (response.status === 204) {
     if (!response.ok) {
@@ -53,7 +62,12 @@ export async function apiRequest<T>(
     return undefined as T;
   }
 
-  const body: unknown = await response.json();
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    throw new ApiRequestError('The API returned an unreadable response. Check the deployed API service and its logs.', response.status);
+  }
   if (!response.ok) {
     const message = (body as ApiErrorBody).error?.message;
     throw new ApiRequestError(message ?? 'The request could not be completed.', response.status);

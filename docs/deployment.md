@@ -19,6 +19,15 @@ pnpm db:migrate
 
 For v1.3.0, use the [migration verification checklist](./migration-checklist.md) and test against a disposable staging database before any production change. Migration execution is a manual developer action and must not run automatically during deployment. Never use `migrate reset` for an existing database.
 
+## Live Vercel frontend and API connection
+
+- Import the repository into Vercel with the Next.js framework preset. For this monorepo, keep the repository root as the project root so the root workspace files and Vercel configuration remain available; leave framework build/output overrides disabled.
+- Configure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel. These are the Supabase project URL and publishable/anon key; never use a service-role key in a `NEXT_PUBLIC_` variable.
+- Configure `NEXT_PUBLIC_API_URL` to the actual public HTTPS origin of the deployed API, for example `https://accesslens-api.onrender.com`. Replace the example with the URL shown for the real Render service. Do not enter `https://your-api.onrender.com`, `localhost`, or add `/api`; the frontend appends route paths itself.
+- Set the API service's `FRONTEND_URL` to the exact Vercel site origin, such as `https://accesslens-ai-web.vercel.app` (no path). The API CORS policy allows that configured origin. After changing either value, redeploy/restart the corresponding service.
+- In Supabase Auth URL Configuration, set the Site URL to the canonical deployed web origin and add that origin's `/auth/callback` URL to the allowed Redirect URLs. Also allow the local callback for development. Signup and password-recovery emails use the current browser origin; confirmation callbacks accept PKCE codes and supported `token_hash` links.
+- A Vercel deployment can render the web UI without a reachable API, but authenticated project, scanner, findings, activity, team, notification, analytics, AI and Jira data will fail to load until the API URL, API service, CORS origin, Supabase credentials, and database are configured together.
+
 ## Optional team invitation email
 
 The API can send invitation emails using the Resend HTTP API. Configure both of these **only in the API/server environment**:

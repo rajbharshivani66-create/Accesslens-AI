@@ -1,6 +1,8 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+type EmailOtpType = 'signup' | 'invite' | 'magiclink' | 'recovery' | 'email_change' | 'email';
+
 function safeRedirectPath(value: string | null): string {
   if (!value || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) {
     return '/dashboard';
@@ -12,6 +14,9 @@ export async function GET(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const code = request.nextUrl.searchParams.get('code');
+  const tokenHash = request.nextUrl.searchParams.get('token_hash');
+  const otpType = request.nextUrl.searchParams.get('type');
+  const allowedOtpTypes = new Set<EmailOtpType>(['signup', 'invite', 'magiclink', 'recovery', 'email_change', 'email']);
 
   if (!supabaseUrl || !supabaseAnonKey) {
     return NextResponse.json(
@@ -20,11 +25,8 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  if (!code) {
-    return NextResponse.json(
-      { error: { code: 'AUTH_CODE_MISSING', message: 'The authentication link is missing its code.' } },
-      { status: 400 }
-    );
+  if (!code && (!tokenHash || !otpType || !allowedOtpTypes.has(otpType as EmailOtpType))) {
+    return NextResponse.redirect(new URL('/login?authError=invalid-link', request.url));
   }
 
   const response = NextResponse.redirect(
@@ -44,13 +46,12 @@ export async function GET(request: NextRequest) {
     }
   });
 
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const { error } = code
+    ? await supabase.auth.exchangeCodeForSession(code)
+    : await supabase.auth.verifyOtp({ token_hash: tokenHash!, type: otpType as EmailOtpType });
   if (error) {
     console.error('Supabase authentication callback could not exchange its code.');
-    return NextResponse.json(
-      { error: { code: 'AUTH_CALLBACK_FAILED', message: 'The authentication link is invalid or expired.' } },
-      { status: 400 }
-    );
+    return NextResponse.redirect(new URL('/login?authError=link-expired', request.url));
   }
 
   return response;
