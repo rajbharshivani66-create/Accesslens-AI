@@ -11,7 +11,18 @@ interface Project {
   name: string;
   url: string;
   description: string | null;
+  teamId: string | null;
+  team: { id: string; name: string } | null;
+  accessRole: string | null;
+  canEdit: boolean;
+  canDelete: boolean;
   updatedAt: string;
+}
+
+interface TeamOption {
+  id: string;
+  name: string;
+  myRole: 'OWNER' | 'ADMIN' | 'DEVELOPER' | 'VIEWER';
 }
 
 interface ProjectList {
@@ -24,6 +35,8 @@ export default function ProjectsPage() {
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
   const [description, setDescription] = useState('');
+  const [teamId, setTeamId] = useState('');
+  const [availableTeams, setAvailableTeams] = useState<TeamOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -35,7 +48,12 @@ export default function ProjectsPage() {
   }, []);
 
   useEffect(() => {
-    refreshProjects()
+    Promise.all([
+      refreshProjects(),
+      apiRequest<TeamOption[]>('/api/teams').then((teams) => {
+        setAvailableTeams(teams.filter((team) => team.myRole !== 'VIEWER'));
+      })
+    ])
       .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : 'Could not load projects.'))
       .finally(() => setLoading(false));
   }, [refreshProjects]);
@@ -47,11 +65,17 @@ export default function ProjectsPage() {
     try {
       await apiRequest<Project>('/api/projects', {
         method: 'POST',
-        body: JSON.stringify({ name, url, description: description || undefined })
+        body: JSON.stringify({
+          name,
+          url,
+          description: description || undefined,
+          teamId: teamId || null
+        })
       });
       setName('');
       setUrl('');
       setDescription('');
+      setTeamId('');
       await refreshProjects();
       pushToast('success', 'Project created.');
     } catch (cause) {
@@ -79,7 +103,7 @@ export default function ProjectsPage() {
         <div>
           <p className="eyebrow">WORKSPACE</p>
           <h1>Projects</h1>
-          <p className="muted">Manage the websites associated with your account.</p>
+          <p className="muted">Manage your personal websites and projects shared with your teams.</p>
         </div>
       </div>
       {error && <div className="alert alert-error" role="alert">{error}</div>}
@@ -107,17 +131,20 @@ export default function ProjectsPage() {
                   <Link className="project-row-copy" href={`/projects/${project.id}`}>
                     <strong>{project.name}</strong>
                     <span>{project.url}</span>
+                    <span>{project.team ? `Team: ${project.team.name}` : 'Personal project'}</span>
                     {project.description && <span>{project.description}</span>}
                   </Link>
-                  <button
-                    aria-label={`Delete ${project.name}`}
-                    className="icon-button danger-icon"
-                    onClick={() => void deleteProject(project)}
-                    title="Delete project"
-                    type="button"
-                  >
-                    <Trash2 size={17} />
-                  </button>
+                  {project.canDelete && (
+                    <button
+                      aria-label={`Delete ${project.name}`}
+                      className="icon-button danger-icon"
+                      onClick={() => void deleteProject(project)}
+                      title="Delete project"
+                      type="button"
+                    >
+                      <Trash2 size={17} />
+                    </button>
+                  )}
                   <Link aria-label={`Open ${project.name}`} className="icon-button" href={`/projects/${project.id}`}>
                     <ArrowRight size={17} />
                   </Link>
@@ -132,7 +159,7 @@ export default function ProjectsPage() {
             <div>
               <span className="card-kicker"><Plus size={16} /> NEW PROJECT</span>
               <h2>Add a website</h2>
-              <p className="muted">Project access is private to your account.</p>
+              <p className="muted">Choose whether this project is private or shared with a team.</p>
             </div>
           </div>
           <form className="form-stack" onSubmit={createProject}>
@@ -159,6 +186,15 @@ export default function ProjectsPage() {
                 rows={3}
                 value={description}
               />
+            </label>
+            <label>
+              Share with team
+              <select onChange={(event) => setTeamId(event.target.value)} value={teamId}>
+                <option value="">Personal project</option>
+                {availableTeams.map((team) => (
+                  <option key={team.id} value={team.id}>{team.name} · {team.myRole.toLowerCase()}</option>
+                ))}
+              </select>
             </label>
             <button className="button button-primary button-full" disabled={busy} type="submit">
               <Plus size={17} /> {busy ? 'Creating…' : 'Create project'}

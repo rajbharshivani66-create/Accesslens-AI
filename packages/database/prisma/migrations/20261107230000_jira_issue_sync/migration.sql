@@ -1,0 +1,1 @@
+ALTER TABLE "JiraIssue" ADD COLUMN "lastSyncedAt" TIMESTAMP(3);

@@ -38,7 +38,7 @@ interface DashboardSummary {
     };
     findings: {
       total: number;
-      byStatus: { OPEN: number; IN_REVIEW: number; RESOLVED: number };
+      byStatus: { OPEN: number; IN_REVIEW: number; IGNORED: number; RESOLVED: number };
       bySeverity: { CRITICAL: number; SERIOUS: number; MODERATE: number; MINOR: number };
     };
     accessibilityScore: number | null;
@@ -184,7 +184,8 @@ export default function DashboardPage() {
               <strong>{summary.metrics.findings.byStatus.OPEN}</strong>
               <span className="metric-note">
                 {summary.metrics.findings.byStatus.RESOLVED} resolved ·{' '}
-                {summary.metrics.findings.byStatus.IN_REVIEW} in review
+                {summary.metrics.findings.byStatus.IN_REVIEW} in review ·{' '}
+                {summary.metrics.findings.byStatus.IGNORED} ignored
               </span>
             </article>
             <article className="metric-card">
@@ -223,7 +224,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               {hasTrendData ? (
-                <div aria-label="Daily scan and finding activity chart" role="img" className="dashboard-chart">
+                <div aria-label={`Daily scan and finding activity chart. ${summary.trends.length} days shown; ${summary.trends.reduce((total, day) => total + day.scans, 0)} scans and ${summary.trends.reduce((total, day) => total + day.findings, 0)} findings in total.`} role="img" className="dashboard-chart">
                   <ResponsiveContainer width="100%" height={260}>
                     <LineChart data={summary.trends} margin={{ top: 8, right: 12, left: -18, bottom: 0 }}>
                       <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
@@ -250,6 +251,7 @@ export default function DashboardPage() {
                   No scan or finding records in this period yet.
                 </div>
               )}
+              {hasTrendData && <p className="muted">Chart summary: {summary.trends.reduce((total, day) => total + day.scans, 0)} scans and {summary.trends.reduce((total, day) => total + day.findings, 0)} findings across {summary.trends.length} days.</p>}
             </section>
 
             <section aria-labelledby="severity-title" className="surface-card dashboard-chart-card">
@@ -260,7 +262,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               {hasSeverityData ? (
-                <div aria-label="Finding counts by severity chart" role="img" className="dashboard-chart">
+                <div aria-label={`Finding counts by severity chart. ${severityData.map((item) => `${item.severity}: ${item.findings}`).join(', ')}.`} role="img" className="dashboard-chart">
                   <ResponsiveContainer width="100%" height={260}>
                     <BarChart data={severityData} layout="vertical" margin={{ top: 4, right: 14, left: 8, bottom: 0 }}>
                       <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" horizontal={false} />
@@ -277,6 +279,7 @@ export default function DashboardPage() {
                   No findings have been saved yet.
                 </div>
               )}
+              {hasSeverityData && <p className="muted">Counts: {severityData.map((item) => `${item.severity}: ${item.findings}`).join(' · ')}</p>}
             </section>
           </div>
 

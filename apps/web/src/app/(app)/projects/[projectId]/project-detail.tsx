@@ -2,7 +2,7 @@
 
 import { ArrowLeft, Save, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiRequest } from '@/lib/api';
 import { useToast } from '@/components/app-shell/toast-provider';
@@ -12,6 +12,11 @@ interface Project {
   name: string;
   url: string;
   description: string | null;
+  teamId: string | null;
+  team: { id: string; name: string } | null;
+  accessRole: string | null;
+  canEdit: boolean;
+  canDelete: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -27,7 +32,9 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
   const [error, setError] = useState('');
   const { pushToast } = useToast();
 
-  useEffect(() => {
+  const loadProject = useCallback(() => {
+    setLoading(true);
+    setError('');
     apiRequest<Project>(`/api/projects/${projectId}`)
       .then((data) => {
         setProject(data);
@@ -38,6 +45,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
       .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : 'Could not load project.'))
       .finally(() => setLoading(false));
   }, [projectId]);
+  useEffect(() => { loadProject(); }, [loadProject]);
 
   async function saveProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -77,6 +85,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
       <section className="page-section">
         <Link className="text-link" href="/projects"><ArrowLeft size={16} /> Back to projects</Link>
         {error && <div className="alert alert-error" role="alert">{error}</div>}
+        <button className="button button-secondary" onClick={loadProject} type="button">Retry</button>
       </section>
     );
   }
@@ -90,31 +99,43 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
           <h1>{project.name}</h1>
           <p className="muted">Created {new Date(project.createdAt).toLocaleDateString()}</p>
         </div>
-        <button className="button button-danger-outline" disabled={busy} onClick={() => void removeProject()} type="button">
-          <Trash2 size={17} /> Delete
-        </button>
+        <div className="project-actions">
+          {project.canEdit && <Link className="button button-primary" href="/scanner">Run scan</Link>}
+          {project.canDelete && (
+            <button className="button button-danger-outline" disabled={busy} onClick={() => void removeProject()} type="button">
+              <Trash2 size={17} /> Delete
+            </button>
+          )}
+        </div>
       </div>
       {error && <div className="alert alert-error" role="alert">{error}</div>}
       <section className="surface-card detail-card">
         <h2>Website information</h2>
-        <p className="muted">Only the owner of this project can view or update these details.</p>
+        <p className="muted">
+          {project.team
+            ? `Shared with ${project.team.name}. Your team role is ${project.accessRole?.toLowerCase() ?? 'member'}.`
+            : 'Private to your account.'}
+          {!project.canEdit && ' Your current role is read-only.'}
+        </p>
         <form className="form-stack detail-form" onSubmit={saveProject}>
           <label>
             Project name
-            <input maxLength={100} minLength={2} onChange={(event) => setName(event.target.value)} required value={name} />
+            <input disabled={!project.canEdit || busy} maxLength={100} minLength={2} onChange={(event) => setName(event.target.value)} required value={name} />
           </label>
           <label>
             Website URL
-            <input onChange={(event) => setUrl(event.target.value)} required type="url" value={url} />
+            <input disabled={!project.canEdit || busy} onChange={(event) => setUrl(event.target.value)} required type="url" value={url} />
           </label>
           <label>
             Description
-            <textarea maxLength={500} onChange={(event) => setDescription(event.target.value)} rows={4} value={description} />
+            <textarea disabled={!project.canEdit || busy} maxLength={500} onChange={(event) => setDescription(event.target.value)} rows={4} value={description} />
           </label>
           <div>
-            <button className="button button-primary" disabled={busy} type="submit">
-              <Save size={17} /> {busy ? 'Saving…' : 'Save changes'}
-            </button>
+            {project.canEdit && (
+              <button className="button button-primary" disabled={busy} type="submit">
+                <Save size={17} /> {busy ? 'Saving…' : 'Save changes'}
+              </button>
+            )}
           </div>
         </form>
       </section>

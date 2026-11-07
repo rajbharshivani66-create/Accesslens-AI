@@ -30,6 +30,7 @@ const scanStatuses = [
 const findingStatuses = [
   FindingStatus.OPEN,
   FindingStatus.IN_REVIEW,
+  FindingStatus.IGNORED,
   FindingStatus.RESOLVED
 ];
 
@@ -88,7 +89,12 @@ export class PrismaDashboardRepository implements DashboardRepository {
     range: DashboardRange,
     startDate: Date
   ): Promise<DashboardSummary> {
-    const projectScope = { ownerId };
+    const projectScope = {
+      OR: [
+        { ownerId, teamId: null },
+        { team: { members: { some: { userId: ownerId } } } }
+      ]
+    };
     const findingScope = { scan: { project: projectScope } };
     const scanScope = { project: projectScope };
 
@@ -170,7 +176,15 @@ export class PrismaDashboardRepository implements DashboardRepository {
           SELECT DISTINCT ON (scan."projectId") scan."projectId", scan."score"
           FROM "Scan" AS scan
           INNER JOIN "Project" AS project ON project."id" = scan."projectId"
-          WHERE project."ownerId" = ${ownerId}
+          WHERE (
+            (project."ownerId" = ${ownerId} AND project."teamId" IS NULL)
+            OR EXISTS (
+              SELECT 1
+              FROM "TeamMember" AS team_member
+              WHERE team_member."teamId" = project."teamId"
+                AND team_member."userId" = ${ownerId}
+            )
+          )
             AND scan."status" = 'COMPLETED'
             AND scan."completedAt" IS NOT NULL
           ORDER BY scan."projectId", scan."completedAt" DESC, scan."id" DESC
@@ -181,7 +195,15 @@ export class PrismaDashboardRepository implements DashboardRepository {
                COUNT(*)::int AS count
         FROM "Scan" AS scan
         INNER JOIN "Project" AS project ON project."id" = scan."projectId"
-        WHERE project."ownerId" = ${ownerId}
+        WHERE (
+          (project."ownerId" = ${ownerId} AND project."teamId" IS NULL)
+          OR EXISTS (
+            SELECT 1
+            FROM "TeamMember" AS team_member
+            WHERE team_member."teamId" = project."teamId"
+              AND team_member."userId" = ${ownerId}
+          )
+        )
           AND scan."startedAt" >= ${startDate}
         GROUP BY 1
         ORDER BY 1
@@ -192,7 +214,15 @@ export class PrismaDashboardRepository implements DashboardRepository {
         FROM "Finding" AS finding
         INNER JOIN "Scan" AS scan ON scan."id" = finding."scanId"
         INNER JOIN "Project" AS project ON project."id" = scan."projectId"
-        WHERE project."ownerId" = ${ownerId}
+        WHERE (
+          (project."ownerId" = ${ownerId} AND project."teamId" IS NULL)
+          OR EXISTS (
+            SELECT 1
+            FROM "TeamMember" AS team_member
+            WHERE team_member."teamId" = project."teamId"
+              AND team_member."userId" = ${ownerId}
+          )
+        )
           AND finding."createdAt" >= ${startDate}
         GROUP BY 1
         ORDER BY 1

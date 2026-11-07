@@ -1,0 +1,11 @@
+ALTER TYPE "VerificationStatus" ADD VALUE IF NOT EXISTS 'QUEUED';
+ALTER TYPE "VerificationStatus" ADD VALUE IF NOT EXISTS 'IN_PROGRESS';
+CREATE TYPE "VerificationOutcome" AS ENUM ('RESOLVED', 'REMAINING', 'REGRESSED');
+ALTER TABLE "Scan" ADD COLUMN "verificationForFindingId" TEXT;
+ALTER TABLE "VerificationRun" ADD COLUMN "outcome" "VerificationOutcome";
+ALTER TABLE "VerificationRun" ADD COLUMN "ruleId" TEXT;
+ALTER TABLE "VerificationRun" ADD COLUMN "title" TEXT;
+ALTER TABLE "VerificationRun" ADD COLUMN "pageUrl" TEXT;
+CREATE INDEX "VerificationRun_status_createdAt_idx" ON "VerificationRun"("status", "createdAt");
+CREATE INDEX "Scan_verificationForFindingId_idx" ON "Scan"("verificationForFindingId");
+ALTER TABLE "Scan" ADD CONSTRAINT "Scan_verificationForFindingId_fkey" FOREIGN KEY ("verificationForFindingId") REFERENCES "Finding"("id") ON DELETE SET NULL ON UPDATE CASCADE;

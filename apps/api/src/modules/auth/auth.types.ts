@@ -2,6 +2,7 @@ export interface AuthIdentity {
   id: string;
   email: string;
   fullName?: string | null;
+  emailVerified?: boolean;
 }
 
 export interface AuthContext extends AuthIdentity {

@@ -12,6 +12,7 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "pnpm db:generate && vitest run",
+    "db": "pnpm db:generate && pnpm db:validate",
     "typecheck": "pnpm db:generate && turbo run typecheck",
     "db:generate": "pnpm --filter @accesslens-ai/database prisma:generate",
     "db:validate": "pnpm --filter @accesslens-ai/database prisma:validate",

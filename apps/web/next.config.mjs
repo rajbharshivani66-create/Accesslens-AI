@@ -7,6 +7,16 @@ dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../.e
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  transpilePackages: ['@accesslens-ai/visual-agent-overlay'],
+  webpack(config, { dev }) {
+    if (!dev) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@accesslens-ai/visual-agent-overlay': resolve(dirname(fileURLToPath(import.meta.url)), 'src/components/app-shell/visual-agent-disabled.tsx')
+      };
+    }
+    return config;
+  },
   experimental: {
     typedRoutes: false
   }

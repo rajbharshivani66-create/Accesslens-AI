@@ -31,6 +31,7 @@ const navigation = [
   { label: 'Verification', href: '/verification', icon: CircleCheck },
   { label: 'Jira', href: '/jira', icon: Blocks },
   { label: 'Analytics', href: '/analytics', icon: ChartNoAxesCombined },
+  { label: 'Activity', href: '/activity', icon: Activity },
   { label: 'Team', href: '/team', icon: Users },
   { label: 'Notifications', href: '/notifications', icon: Bell },
   { label: 'Settings', href: '/settings', icon: Settings }

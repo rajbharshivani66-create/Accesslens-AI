@@ -20,6 +20,10 @@ enum ScanStatus {
   FAILED
 }
 
+enum ScanPageStatus {
+  COMPLETED
+}
+
 enum FindingSeverity {
   CRITICAL
   SERIOUS
@@ -30,6 +34,7 @@ enum FindingSeverity {
 enum FindingStatus {
   OPEN
   IN_REVIEW
+  IGNORED
   RESOLVED
 }
 
@@ -40,15 +45,30 @@ enum FixSuggestionStatus {
 }
 
 enum VerificationStatus {
+  QUEUED
+  IN_PROGRESS
   COMPLETED
   FAILED
+}
+
+enum VerificationOutcome {
+  RESOLVED
+  REMAINING
+  REGRESSED
 }
 
 enum TeamMemberRole {
   OWNER
   ADMIN
-  EDITOR
+  DEVELOPER
   VIEWER
+}
+
+enum InvitationEmailStatus {
+  NOT_CONFIGURED
+  PENDING
+  ACCEPTED
+  FAILED
 }
 
 enum NotificationType {
@@ -73,6 +93,10 @@ model UserProfile {
   notifications    Notification[]
   activityLogs     ActivityLog[]
   jiraIntegrations JiraIntegration[]
+  jiraOAuthStates  JiraOAuthState[]
+  sentTeamInvitations TeamInvitation[] @relation("TeamInvitationCreator")
+  requestedScans   Scan[]            @relation("ScanRequester")
+  assignedFindings Finding[]         @relation("FindingAssignee")
 
   @@index([email])
 }
@@ -84,7 +108,27 @@ model Team {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   members     TeamMember[]
+  invitations TeamInvitation[]
   projects    Project[]
+}
+
+model TeamInvitation {
+  id          String       @id @default(cuid())
+  teamId      String
+  email       String
+  tokenHash   String       @unique
+  createdById String
+  role        TeamMemberRole @default(DEVELOPER)
+  emailStatus InvitationEmailStatus @default(NOT_CONFIGURED)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime     @default(now())
+  team        Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy   UserProfile  @relation("TeamInvitationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([teamId, expiresAt])
+  @@index([createdById, createdAt])
 }
 
 model TeamMember {
@@ -122,43 +166,84 @@ model Project {
 model Scan {
   id                String             @id @default(cuid())
   projectId         String
+  requestedById     String?
   status            ScanStatus         @default(QUEUED)
   score             Int                @default(0)
   startedAt         DateTime           @default(now())
   completedAt       DateTime?
+  errorMessage      String?
+  pageCount         Int                @default(1)
+  incompleteCount   Int                @default(0)
+  passedCount       Int                @default(0)
+  durationMs        Int?
+  requestedPaths    String[]           @default(["/"])
+  verificationForFindingId String?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   project           Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requestedBy       UserProfile?       @relation("ScanRequester", fields: [requestedById], references: [id], onDelete: SetNull)
   findings          Finding[]
+  pages             ScanPage[]
   verificationRuns  VerificationRun[]
+  verificationFor   Finding?           @relation("VerificationTarget", fields: [verificationForFindingId], references: [id], onDelete: SetNull)
 
   @@index([projectId, createdAt])
   @@index([projectId, startedAt])
   @@index([projectId, completedAt])
   @@index([status])
+  @@index([status, startedAt])
+  @@index([requestedById])
+  @@index([verificationForFindingId])
+}
+
+model ScanPage {
+  id             String         @id @default(cuid())
+  scanId         String
+  requestedUrl   String
+  finalUrl       String
+  title          String?
+  status         ScanPageStatus @default(COMPLETED)
+  durationMs     Int            @default(0)
+  passedCount    Int            @default(0)
+  incompleteCount Int           @default(0)
+  createdAt      DateTime       @default(now())
+  scan           Scan           @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  @@unique([scanId, requestedUrl])
+  @@index([scanId, createdAt])
 }
 
 model Finding {
   id                String              @id @default(cuid())
   scanId            String
   title             String
+  ruleId            String              @default("unknown")
   description       String?
+  impact            String?
   severity          FindingSeverity     @default(MODERATE)
   status            FindingStatus       @default(OPEN)
+  assignedToId      String?
   selector          String?
   snippet           String?
   pageUrl           String?
   wcag              String?
+  wcagTags          String[]            @default([])
+  helpUrl           String?
+  failureSummary    String?
+  violationCount    Int                 @default(1)
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   scan              Scan                @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  assignedTo        UserProfile?        @relation("FindingAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
   aiExplanation     AIExplanation?
   fixSuggestion     FixSuggestion?
   jiraIssue         JiraIssue?
   verificationRuns  VerificationRun[]
+  verificationScans Scan[]             @relation("VerificationTarget")
 
   @@index([scanId, createdAt])
   @@index([severity, status])
+  @@index([assignedToId, status])
 }
 
 model AIExplanation {
@@ -169,6 +254,9 @@ model AIExplanation {
   affectedUsers String[]
   wcag          String[]
   fixSteps      String[]
+  rootCause     String?
+  wcagExplanation String?
+  testInstructions String[] @default([])
   createdAt     DateTime @default(now())
   finding       Finding  @relation(fields: [findingId], references: [id], onDelete: Cascade)
 }
@@ -178,6 +266,8 @@ model FixSuggestion {
   findingId   String              @unique
   before      String
   after       String
+  htmlSuggestion String?
+  jsxSuggestion String?
   explanation String
   status      FixSuggestionStatus @default(SUGGESTED)
   createdAt   DateTime            @default(now())
@@ -190,6 +280,10 @@ model VerificationRun {
   scanId          String
   findingId       String?
   status          VerificationStatus @default(COMPLETED)
+  outcome         VerificationOutcome?
+  ruleId          String?
+  title           String?
+  pageUrl         String?
   resolvedCount   Int                @default(0)
   regressionCount Int                @default(0)
   scoreDelta      Int                @default(0)
@@ -199,23 +293,45 @@ model VerificationRun {
 
   @@index([scanId, createdAt])
   @@index([findingId])
+  @@index([status, createdAt])
 }
 
 model JiraIntegration {
   id                  String       @id @default(cuid())
   userId              String
+  cloudId             String?
   baseUrl             String
   projectKey          String
   accessTokenCiphertext String?
   refreshTokenCiphertext String?
+  accessTokenExpiresAt DateTime?
+  scopes              String[]     @default([])
   connectedAt         DateTime?
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
   user                UserProfile  @relation(fields: [userId], references: [id], onDelete: Cascade)
   issues              JiraIssue[]
 
-  @@unique([userId, projectKey])
+  @@unique([userId, cloudId])
   @@index([userId])
+}
+
+model JiraOAuthState {
+  id                       String      @id @default(cuid())
+  userId                   String
+  stateHash                String      @unique
+  accessTokenCiphertext    String?
+  refreshTokenCiphertext   String?
+  accessTokenExpiresAt     DateTime?
+  sites                    Json?
+  expiresAt                DateTime
+  callbackUsedAt           DateTime?
+  completedAt              DateTime?
+  consumedAt               DateTime?
+  createdAt                DateTime    @default(now())
+  user                     UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
 }
 
 model JiraIssue {
@@ -226,6 +342,7 @@ model JiraIssue {
   title         String
   status        String          @default("Open")
   url           String?
+  lastSyncedAt  DateTime?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   integration   JiraIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)

@@ -1,7 +1,7 @@
 'use client';
 
 import { Save } from 'lucide-react';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest } from '@/lib/api';
 import { useToast } from '@/components/app-shell/toast-provider';
 
@@ -20,7 +20,9 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const { pushToast } = useToast();
 
-  useEffect(() => {
+  const loadProfile = useCallback(() => {
+    setLoading(true);
+    setError('');
     apiRequest<Profile>('/api/profile')
       .then((result) => {
         setProfile(result);
@@ -30,6 +32,7 @@ export default function SettingsPage() {
       .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : 'Could not load profile.'))
       .finally(() => setLoading(false));
   }, []);
+  useEffect(() => { loadProfile(); }, [loadProfile]);
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -61,12 +64,12 @@ export default function SettingsPage() {
           <p className="muted">Manage your profile information.</p>
         </div>
       </div>
-      {error && <div className="alert alert-error" role="alert">{error}</div>}
+      {error && <div className="alert alert-error" role="alert">{error}{!profile && !loading && <button className="button button-secondary" onClick={loadProfile} type="button">Retry</button>}</div>}
       <section className="surface-card detail-card">
         <h2>Your profile</h2>
         {loading ? (
           <div aria-live="polite" className="loading-panel">Loading profile…</div>
-        ) : (
+        ) : profile ? (
           <>
             <p className="muted">Signed in as {profile?.email}</p>
             <form className="form-stack detail-form" onSubmit={saveProfile}>
@@ -90,7 +93,8 @@ export default function SettingsPage() {
               </div>
             </form>
           </>
-        )}
+        ) : <p className="muted">Profile settings could not be loaded. Retry to continue.</p>}
+        <p className="muted">Email and password are managed by your sign-in provider. Notification preference controls are not configured for this account.</p>
       </section>
     </section>
   );

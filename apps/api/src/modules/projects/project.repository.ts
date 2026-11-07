@@ -1,4 +1,5 @@
 import type { AuthIdentity } from '../auth/auth.types.js';
+import type { TeamMemberRole } from '@accesslens-ai/database';
 
 export interface ProfileRecord {
   id: string;
@@ -18,6 +19,10 @@ export interface ProjectRecord {
   name: string;
   url: string;
   description: string | null;
+  team: { id: string; name: string } | null;
+  accessRole: TeamMemberRole | null;
+  canEdit: boolean;
+  canDelete: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,7 +31,10 @@ export interface ProjectInput {
   name: string;
   url: string;
   description?: string;
+  teamId?: string | null;
 }
+
+export type ProjectUpdateInput = Partial<Omit<ProjectInput, 'teamId'>>;
 
 export interface ProfileInput {
   fullName?: string | null;
@@ -39,16 +47,16 @@ export interface ProjectRepository {
   getProfile(authUserId: string): Promise<ProfileRecord | null>;
   updateProfile(authUserId: string, input: ProfileInput): Promise<ProfileRecord | null>;
   listProjects(
-    ownerId: string,
+    userId: string,
     skip: number,
     take: number
   ): Promise<{ items: ProjectRecord[]; total: number }>;
-  getProject(ownerId: string, projectId: string): Promise<ProjectRecord | null>;
-  createProject(ownerId: string, input: ProjectInput): Promise<ProjectRecord>;
+  getProject(userId: string, projectId: string): Promise<ProjectRecord | null>;
+  createProject(userId: string, input: ProjectInput): Promise<ProjectRecord>;
   updateProject(
-    ownerId: string,
+    userId: string,
     projectId: string,
-    input: Partial<ProjectInput>
+    input: ProjectUpdateInput
   ): Promise<ProjectRecord | null>;
-  deleteProject(ownerId: string, projectId: string): Promise<boolean>;
+  deleteProject(userId: string, projectId: string): Promise<boolean>;
 }
