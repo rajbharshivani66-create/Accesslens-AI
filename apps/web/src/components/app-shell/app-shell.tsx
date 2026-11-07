@@ -196,11 +196,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <main className="main-content">
-          <div className="page-back-wrap">
+          {pathname !== '/dashboard' && <div className="page-back-wrap">
             <button aria-label="Go back to the previous page" className="back-button" onClick={goBack} type="button">
               <ArrowLeft aria-hidden="true" size={16} /><span>Back</span>
             </button>
-          </div>
+          </div>}
           {children}
         </main>
       </div>

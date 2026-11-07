@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { apiRequest } from '@/lib/api';
+import { describeGeminiError } from '@/lib/ai-errors';
 
 type FindingOption = { id: string; title: string; ruleId: string; severity: string; status: string; access: { writable: boolean; projectName: string } };
 type Generated = {
@@ -45,7 +46,7 @@ export default function AIFixesPage() {
       await apiRequest<Generated>(endpoint, { method: 'POST', body: JSON.stringify({ findingId: selectedId }) });
       setNotice('AI-generated explanation and suggestions saved. Developer review and testing are required.');
       await load();
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'AI generation failed.'); }
+    } catch (reason) { setError(describeGeminiError(reason)); }
     finally { setBusy(false); }
   }
 

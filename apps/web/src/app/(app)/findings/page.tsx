@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { apiRequest } from '@/lib/api';
+import { describeGeminiError } from '@/lib/ai-errors';
 
 type Finding = {
   id: string; ruleId: string; title: string; description: string | null; impact: string | null;
@@ -158,7 +159,7 @@ export default function FindingsPage() {
     try {
       setAiAssistance(await apiRequest<AIAssistance>('/api/ai/explain', { method: 'POST', body: JSON.stringify({ findingId }) }));
       setNotice('AI-generated guidance loaded. Developer review is required.');
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'AI explanation failed. Try again.'); }
+    } catch (reason) { setError(describeGeminiError(reason)); }
     finally { setAiBusy(false); }
   }
 
